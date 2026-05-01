@@ -1,6 +1,8 @@
 import Demo.BatchInvariance.Forward
 import Demo.BatchInvariance.Backward
 import Demo.BatchInvariance.TransformerBlock
+import Demo.BatchInvariance.Backend
+import Demo.BatchInvariance.Backend.MX
 
 /-! # Demo: Batch invariance of a toy LLM
 
@@ -64,9 +66,14 @@ which kernel behavior breaks reproducibility.
                                                 end-to-end batch
                                                 invariance proved.
   *  `Demo.BatchInvariance.Backend`         — `Backend` / `BatchInvariant`
-                                                typeclasses (forthcoming).
-  *  `Demo.BatchInvariance.Backend.MX`      — concrete `MXBackend`
-                                                instance (forthcoming).
+                                                typeclasses; per-op
+                                                axiom that the batched
+                                                primitive equals the
+                                                row reference applied
+                                                to the b-th input.
+  *  `Demo.BatchInvariance.Backend.MX`      — the friendly reference
+                                                instance.  Every axiom
+                                                discharges by `rfl`.
   *  `Demo.BatchInvariance.Model`           — toy LLM definition
                                                 (forthcoming).
 
