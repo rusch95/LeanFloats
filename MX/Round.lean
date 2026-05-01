@@ -134,9 +134,7 @@ def IsValidStochasticRound (r : ℝ) (z : E2M1) : Prop :=
     `lower, upper` are the two adjacent E2M1 values straddling `r`,
     and `z` is whichever side. -/
 noncomputable def stochasticRoundProb
-    (r : ℝ) (lower upper : E2M1)
-    (h_lower : lower.toReal ≤ r) (h_upper : r ≤ upper.toReal)
-    (h_lt : lower.toReal < upper.toReal) (z : E2M1) : ℝ :=
+    (r : ℝ) (lower upper z : E2M1) : ℝ :=
   if z = upper then
     (r - lower.toReal) / (upper.toReal - lower.toReal)
   else if z = lower then
@@ -146,10 +144,9 @@ noncomputable def stochasticRoundProb
 /-- The two probabilities for adjacent E2M1 values sum to 1. -/
 theorem stochasticRoundProb_sum_one
     (r : ℝ) (lower upper : E2M1)
-    (h_lower : lower.toReal ≤ r) (h_upper : r ≤ upper.toReal)
     (h_lt : lower.toReal < upper.toReal) (h_ne : lower ≠ upper) :
-    stochasticRoundProb r lower upper h_lower h_upper h_lt upper +
-    stochasticRoundProb r lower upper h_lower h_upper h_lt lower = 1 := by
+    stochasticRoundProb r lower upper upper +
+    stochasticRoundProb r lower upper lower = 1 := by
   unfold stochasticRoundProb
   rw [if_pos rfl, if_neg h_ne, if_pos rfl]
   have h_diff_ne : upper.toReal - lower.toReal ≠ 0 := by linarith
@@ -161,10 +158,9 @@ theorem stochasticRoundProb_sum_one
     average of the two adjacent representables equals `r` exactly. -/
 theorem stochasticRound_unbiased
     (r : ℝ) (lower upper : E2M1)
-    (h_lower : lower.toReal ≤ r) (h_upper : r ≤ upper.toReal)
     (h_lt : lower.toReal < upper.toReal) (h_ne : lower ≠ upper) :
-    stochasticRoundProb r lower upper h_lower h_upper h_lt upper * upper.toReal +
-    stochasticRoundProb r lower upper h_lower h_upper h_lt lower * lower.toReal
+    stochasticRoundProb r lower upper upper * upper.toReal +
+    stochasticRoundProb r lower upper lower * lower.toReal
       = r := by
   unfold stochasticRoundProb
   rw [if_pos rfl, if_neg h_ne, if_pos rfl]

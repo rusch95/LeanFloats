@@ -64,7 +64,7 @@ def le (x y : E2M1) : Bool := lt x y || eq x y
 @[simp] theorem eq_self (x : E2M1) : eq x x = true := by
   unfold eq
   by_cases h : magNat x = 0
-  · simp [h]
+  · simp
   · simp_all
 
 theorem le_refl (x : E2M1) : le x x = true := by

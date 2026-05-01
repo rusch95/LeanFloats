@@ -123,7 +123,7 @@ private theorem gap_up_le_ulp
             have hm_eq : m = (⟨0, h_zero⟩ : Fin (2 ^ mb)) := Fin.ext h_m_zero
             have h_ulp_eq : (.finite true e m : IEEEFloat eb mb).ulp
                           = (2 : ℝ) ^ minSubnormalExp eb mb := by
-              simp [ulp, h_e_one, h_e, minSubnormalExp, minNormalExp]
+              simp [ulp, h_e_one, minSubnormalExp, minNormalExp]
             rw [h_ulp_eq]
             subst hm_eq
             subst he_eq
@@ -261,7 +261,7 @@ private theorem gap_down_le_ulp
             have hm_eq : m = (⟨0, h_zero⟩ : Fin (2 ^ mb)) := Fin.ext h_m_zero
             have h_ulp_eq : (.finite false e m : IEEEFloat eb mb).ulp
                           = (2 : ℝ) ^ minSubnormalExp eb mb := by
-              simp [ulp, h_e_one, h_e, minSubnormalExp, minNormalExp]
+              simp [ulp, h_e_one, minSubnormalExp, minNormalExp]
             rw [h_ulp_eq]
             subst hm_eq
             subst he_eq

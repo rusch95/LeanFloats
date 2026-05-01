@@ -40,12 +40,12 @@ variable {eb mb : Nat}
 /-- IEEE 754 unit roundoff: `2^{-mb-1}`.  This is the standard
     numerical-analysis "u" — half a ULP relative to a normalised
     significand. -/
-noncomputable def unitRoundoff (eb mb : Nat) : ℝ :=
+noncomputable def unitRoundoff (_eb mb : Nat) : ℝ :=
   (2 : ℝ) ^ (-(mb : Int) - 1)
 
 /-- Machine epsilon: `2^{-mb}`, the spacing between 1.0 and the
     next representable above 1.0. -/
-noncomputable def machineEpsilon (eb mb : Nat) : ℝ :=
+noncomputable def machineEpsilon (_eb mb : Nat) : ℝ :=
   (2 : ℝ) ^ (-(mb : Int))
 
 /-- `unitRoundoff = machineEpsilon / 2`. -/

@@ -212,7 +212,7 @@ theorem nextFinite_value_pos_within
       = finiteValue (eb := eb) (mb := mb) false e m
         + ulp (.finite false e m : IEEEFloat eb mb) := by
   have h2ne : ((2 : ℝ) ^ mb) ≠ 0 := two_pow_mb_ne
-  simp only [finiteValue, ulp, if_false_left, if_pos]
+  simp only [finiteValue, ulp]
   by_cases he : e.val = 0
   · simp only [he, ↓reduceIte]
     -- subnormal: 2^minNormalExp * (m+1)/2^mb = 2^minNormalExp * m/2^mb + 2^minSubnormalExp
@@ -276,10 +276,9 @@ theorem finiteValue_pos_cross_subnormal_diff
       - finiteValue (eb := eb) (mb := mb) false ⟨0, h_e_old⟩ ⟨2 ^ mb - 1, h_max⟩
       = (2 : ℝ) ^ minSubnormalExp eb mb := by
   have h2ne : ((2 : ℝ) ^ mb) ≠ 0 := two_pow_mb_ne
-  have h_e_old_eq : (⟨0, h_e_old⟩ : Fin (2 ^ eb - 1)).val = 0 := rfl
   have h_e_new_ne : (⟨1, h_e_new⟩ : Fin (2 ^ eb - 1)).val ≠ 0 := by
     show (1 : Nat) ≠ 0; decide
-  simp only [finiteValue, h_e_old_eq, h_e_new_ne, ↓reduceIte, if_true]
+  simp only [finiteValue, h_e_new_ne, ↓reduceIte]
   rw [show minSubnormalExp eb mb = minNormalExp eb - (mb : Int) from rfl,
       zpow_sub_natCast]
   rw [show (((1 : Nat) : Int) - bias eb) = minNormalExp eb from by
@@ -327,8 +326,7 @@ theorem finiteValue_neg_cross_to_subnormal_diff
   have h2ne : ((2 : ℝ) ^ mb) ≠ 0 := two_pow_mb_ne
   have h_e_old_ne : (⟨1, h_e_old⟩ : Fin (2 ^ eb - 1)).val ≠ 0 := by
     show (1 : Nat) ≠ 0; decide
-  have h_e_new_eq : (⟨0, h_e_new⟩ : Fin (2 ^ eb - 1)).val = 0 := rfl
-  simp only [finiteValue, h_e_old_ne, h_e_new_eq, ↓reduceIte]
+  simp only [finiteValue, h_e_old_ne, ↓reduceIte]
   rw [show minSubnormalExp eb mb = minNormalExp eb - (mb : Int) from rfl,
       zpow_sub_natCast]
   rw [show (((1 : Nat) : Int) - bias eb) = minNormalExp eb from by
@@ -402,6 +400,7 @@ normal) or non-zero (normal), with mixed cases impossible because
 subnormal magnitudes are `< 2^minNormalExp` while normal magnitudes
 are `≥ 2^minNormalExp`. -/
 
+set_option linter.unusedVariables false in
 private theorem finiteValue_normal_pos
     {s : Bool} {e : Fin (2 ^ eb - 1)} {m : Fin (2 ^ mb)}
     (he : e.val ≠ 0) :
@@ -414,6 +413,7 @@ private theorem finiteValue_normal_pos
   have : (1 : ℝ) ≤ 1 + (m.val : ℝ) / (2 : ℝ) ^ mb := by linarith
   positivity
 
+set_option linter.unusedVariables false in
 private theorem finiteValue_normal_lt_two_pow
     {s : Bool} (e : Fin (2 ^ eb - 1)) (m : Fin (2 ^ mb)) (he : e.val ≠ 0) :
     (2 : ℝ) ^ ((e.val : Int) - bias eb) * (1 + (m.val : ℝ) / (2 : ℝ) ^ mb)
@@ -768,7 +768,7 @@ private theorem finiteValue_normal_abs_ge_two_pow_minNormalExp
   have h_e_int_ge : minNormalExp eb ≤ (e.val : Int) - bias eb := by
     rw [show minNormalExp eb = 1 - bias eb from rfl]
     have h_e_pos : 1 ≤ e.val := Nat.one_le_iff_ne_zero.mpr he
-    push_cast; omega
+    omega
   have h_zpow_mono : (2 : ℝ) ^ minNormalExp eb
       ≤ (2 : ℝ) ^ ((e.val : Int) - bias eb) :=
     zpow_le_zpow_right₀ (by norm_num : (1 : ℝ) ≤ 2) h_e_int_ge
@@ -1060,7 +1060,7 @@ private theorem finiteValue_pos_exp_strict_mono
                              ≤ (2 : ℝ) ^ ((e₂.val : Int) - bias eb) := by
         apply zpow_le_zpow_right₀ (by norm_num : (1 : ℝ) ≤ 2)
         rw [show minNormalExp eb = 1 - bias eb from rfl]
-        push_cast; omega
+        omega
       linarith
     · -- LHS normal
       have h_lhs_lt_next : finiteValue (eb := eb) (mb := mb) false e₁ m₁
@@ -1117,7 +1117,7 @@ private theorem finiteValue_neg_mantissa_strict_anti
   have hpos := finiteValue_pos_mantissa_strict_mono (eb := eb) (mb := mb) e m₁ m₂ h
   -- finiteValue true e m = - (positive version with same e, m)
   -- (using simp on finiteValue under sign true)
-  simp only [finiteValue, show (if true = true then (-1 : ℝ) else 1) = -1 from rfl] at *
+  simp only [finiteValue] at *
   simp only [show (if false = true then (-1 : ℝ) else 1) = 1 from rfl, one_mul] at hpos
   by_cases he : e.val = 0
   · simp only [he, ↓reduceIte] at hpos ⊢
@@ -1132,7 +1132,7 @@ private theorem finiteValue_neg_exp_strict_anti
     finiteValue (eb := eb) (mb := mb) true e₂ m₂
       < finiteValue (eb := eb) (mb := mb) true e₁ m₁ := by
   have hpos := finiteValue_pos_exp_strict_mono (e₁ := e₁) (e₂ := e₂) m₁ m₂ h_e
-  simp only [finiteValue, show (if true = true then (-1 : ℝ) else 1) = -1 from rfl] at *
+  simp only [finiteValue] at *
   simp only [show (if false = true then (-1 : ℝ) else 1) = 1 from rfl, one_mul] at hpos
   by_cases he₂ : e₂.val = 0
   · omega
@@ -1171,7 +1171,7 @@ theorem finiteValue_neg_nonpos
     (e : Fin (2 ^ eb - 1)) (m : Fin (2 ^ mb)) :
     finiteValue (eb := eb) (mb := mb) true e m ≤ 0 := by
   have hpos := finiteValue_pos_nonneg (eb := eb) (mb := mb) e m
-  simp only [finiteValue, show (if true = true then (-1 : ℝ) else 1) = -1 from rfl] at *
+  simp only [finiteValue] at *
   simp only [show (if false = true then (-1 : ℝ) else 1) = 1 from rfl, one_mul] at hpos
   by_cases he : e.val = 0
   · simp only [he, ↓reduceIte] at hpos ⊢
@@ -1301,11 +1301,10 @@ theorem nextFinite_encoding_adjacent
                        < finiteValue (eb := eb) (mb := mb) false e_y m_y := by
             -- finiteValue true e m = -finiteValue false e m
             simp only [finiteValue,
-                       show (if true = true then (-1 : ℝ) else 1) = -1 from rfl,
                        show (if false = true then (-1 : ℝ) else 1) = 1 from rfl,
                        one_mul] at hz_gt ⊢
             by_cases he_y : e_y.val = 0 <;> by_cases he_z : e_z.val = 0 <;>
-              simp_all <;> linarith
+              simp_all
           have h_tri := (finiteValue_pos_lt_iff e_z e_y m_z m_y).mp h_pos_lt
           rcases h_tri with h_e_lt | ⟨h_e_eq, h_m_lt⟩
           · -- e_z < e_y: by neg trichotomy z < (true, e_y, anything in stratum) < nextFinite y
@@ -1334,11 +1333,10 @@ theorem nextFinite_encoding_adjacent
             have h_pos_lt : finiteValue (eb := eb) (mb := mb) false e_z m_z
                          < finiteValue (eb := eb) (mb := mb) false e_y m_y := by
               simp only [finiteValue,
-                         show (if true = true then (-1 : ℝ) else 1) = -1 from rfl,
                          show (if false = true then (-1 : ℝ) else 1) = 1 from rfl,
                          one_mul] at hz_gt ⊢
               by_cases he_y : e_y.val = 0 <;> by_cases he_z : e_z.val = 0 <;>
-                simp_all <;> linarith
+                simp_all
             have h_tri := (finiteValue_pos_lt_iff e_z e_y m_z m_y).mp h_pos_lt
             rcases h_tri with h_e_lt | ⟨h_e_eq, h_m_lt⟩
             · -- e_z < e_y. Need: (true, e_y - 1, 2^mb - 1).value ≤ z.value.

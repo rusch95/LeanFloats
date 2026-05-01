@@ -439,7 +439,7 @@ theorem encodeOptimal_decodeAt_error
     encoder.  Combines `encodeOptimal_decodeAt_error` with
     `optimalScale_minimal`. -/
 theorem encodeOptimal_decodeAt_error_le_chooseScale
-    (v : List.Vector ℝ K) (i : Fin K)
+    (v : List.Vector ℝ K)
     (hM : ∀ i, |v.get i| ≤ 6 * (2 : ℝ) ^ (127 : ℤ)) :
     (optimalScale v hM).toRealOrZero ≤ (chooseScale v).toRealOrZero := by
   rw [chooseScale_toRealOrZero]
