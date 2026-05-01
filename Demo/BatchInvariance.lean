@@ -3,6 +3,7 @@ import Demo.BatchInvariance.Backward
 import Demo.BatchInvariance.TransformerBlock
 import Demo.BatchInvariance.Backend
 import Demo.BatchInvariance.Backend.MX
+import Demo.BatchInvariance.Model
 
 /-! # Demo: Batch invariance of a toy LLM
 
@@ -74,8 +75,15 @@ which kernel behavior breaks reproducibility.
   *  `Demo.BatchInvariance.Backend.MX`      — the friendly reference
                                                 instance.  Every axiom
                                                 discharges by `rfl`.
-  *  `Demo.BatchInvariance.Model`           — toy LLM definition
-                                                (forthcoming).
+  *  `Demo.BatchInvariance.Model`           — the toy LLM
+                                                (`ToyLLM`), forward-pass
+                                                routing through the
+                                                `Backend`, and the
+                                                forward-pass batch-
+                                                invariance theorem
+                                                `forwardBatch_eq_forwardRow`
+                                                plus its permutation
+                                                corollary.
 
 The headline theorem will land in this file once the backend
 abstraction and the toy LLM are in place. -/
