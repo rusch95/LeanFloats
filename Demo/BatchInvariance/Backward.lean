@@ -1,4 +1,4 @@
-import MX.Forward
+import Demo.BatchInvariance.Forward
 
 /-! # Backward-pass batch invariance
 
@@ -55,8 +55,9 @@ determinism of the weight gradient.
      for QAT.  Those are downstream layers on top of this.
 -/
 
-namespace MX
+namespace Demo.BatchInvariance
 namespace Backward
+open MX
 
 /-! ## The backward kernel: transpose-GEMM -/
 
@@ -260,4 +261,4 @@ theorem LayerBwd.applyBatch_rowLocal2 {α : Type*} {K m N B : Nat}
   exact LB.applyBatch_row_indep X X' dY dY' b hX hdY i
 
 end Backward
-end MX
+end Demo.BatchInvariance

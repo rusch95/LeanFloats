@@ -10,8 +10,6 @@ import MX.Arith
 import MX.Backend
 import MX.Bits
 import MX.Kernel
-import MX.Forward
-import MX.Backward
 import MX.MXFP4_FP32
 import MX.Quantize
 import MX.Dot
@@ -21,7 +19,6 @@ import MX.GEMM_FP32
 import MX.TreeDependence
 import MX.RMSNorm
 import MX.Softmax
-import MX.TransformerBlock
 
 /-! # MXFP4 — OCP Microscaling FP4 (block-scaled 4-bit float)
 

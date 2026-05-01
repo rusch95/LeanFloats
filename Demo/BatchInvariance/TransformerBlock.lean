@@ -1,4 +1,4 @@
-import MX.Forward
+import Demo.BatchInvariance.Forward
 import MX.RMSNorm
 import MX.Softmax
 
@@ -46,8 +46,9 @@ batch-dependent reduction, which is exactly the negative result
 formalized in `MX/TreeDependence.lean`.
 -/
 
-namespace MX
+namespace Demo.BatchInvariance
 namespace TransformerBlock
+open MX
 
 /-! ## A stylized 4-step transformer block
 
@@ -178,4 +179,4 @@ noncomputable def mkSoftmaxStep {K m : Nat}
 end Block
 
 end TransformerBlock
-end MX
+end Demo.BatchInvariance

@@ -34,8 +34,9 @@ generalizes to those constructions; we leave the formal extension
 to a follow-up.
 -/
 
-namespace MX
+namespace Demo.BatchInvariance
 namespace Forward
+open MX
 
 /-! ## Single layer: linear + pointwise activation -/
 
@@ -197,4 +198,4 @@ theorem TwoLayerBlock.applyBatch_rowLocal {α : Type*}
   fun X X' b h => funext (block.applyBatch_row_indep X X' b h)
 
 end Forward
-end MX
+end Demo.BatchInvariance
