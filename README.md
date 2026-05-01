@@ -26,6 +26,17 @@ The MX layer ships `E2M1` / `E8M0` / `MXBlock`, decode/encode/round, ops + backe
 
 For per-module summaries see the doc-comments in [`IEEEFloat.lean`](IEEEFloat.lean) and [`MX.lean`](MX.lean).
 
+## Downstream
+
+ML-side artifacts that consume these formal float and number-format
+specs live in a sibling project,
+[`LeanMachineLearning`](https://github.com/rusch95/LeanMachineLearning):
+
+- `Tensors` — generic tensor abstractions over IEEE 754 binary
+  formats.
+- `BatchInvariance` — proof that a toy transformer-style LLM is
+  bitwise batch-invariant on both forward and backward passes.
+
 ## Out of scope (deliberately)
 
 - WGSL §15.7 relaxed semantics, LLVM `llvm.fmuladd` contraction, numpy-style alternative rounding modes — these belong layered on top of the IEEE contracts here.
