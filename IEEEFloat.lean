@@ -15,6 +15,10 @@ import IEEEFloat.Convert
 import IEEEFloat.ConvertFormat
 import IEEEFloat.RoundingMode
 import IEEEFloat.Identities
+import IEEEFloat.FloatSpec
+import IEEEFloat.FloatSpec.F32
+import IEEEFloat.FloatSpec.F16
+import IEEEFloat.FloatSpec.BF16
 
 /-! # IEEEFloat — strict IEEE 754 binary floating-point in Lean 4
 

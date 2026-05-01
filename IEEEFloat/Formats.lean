@@ -46,6 +46,30 @@ abbrev Binary64 : Type := IEEEFloat 11 52
 /-- bfloat16 (Google brain-float).  f32-range, 7-bit trailing mantissa. -/
 abbrev BFloat16 : Type := IEEEFloat 8 7
 
+/-! ## Short ML-flavored aliases
+
+  *  `F16`  ≡ `Binary16` — IEEE 754 half precision.
+  *  `F32`  ≡ `Binary32` — IEEE 754 single precision.
+  *  `F64`  ≡ `Binary64` — IEEE 754 double precision.
+  *  `BF16` ≡ `BFloat16` — Google brain-float.
+
+These match the names used in ML/silicon contexts (PyTorch
+`torch.float32`, NVIDIA `f32`, the MX OCP spec, etc.) and read
+more cleanly in places where the IEEE standard name `Binary*` is
+both verbose and unfamiliar (e.g. tensor APIs). -/
+
+/-- IEEE 754 half precision: short alias for `Binary16`. -/
+abbrev F16 : Type := Binary16
+
+/-- IEEE 754 single precision: short alias for `Binary32`. -/
+abbrev F32 : Type := Binary32
+
+/-- IEEE 754 double precision: short alias for `Binary64`. -/
+abbrev F64 : Type := Binary64
+
+/-- Brain-float 16: short alias for `BFloat16`. -/
+abbrev BF16 : Type := BFloat16
+
 /-! ## Binary16 (IEEE 754 half precision)
 
   *  16 total bits — 1 sign, 5 exp, 10 mantissa
