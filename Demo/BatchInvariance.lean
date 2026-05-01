@@ -154,4 +154,43 @@ theorem toyLLM_batch_invariant
   , M.gradHiddenBatch_permute LB tokens dLogit σ b i
   , M.weightGradBatch_permute LB decodeX mulOp tokens dLogit σ b v i ⟩
 
+/-! ## Closed-form: batch invariance under the friendly MX backend
+
+The capstone above is parametric in `[Backend α] [BatchInvariant α]`.
+With the friendly `MXBackend` instances supplied automatically by
+typeclass resolution, the theorem applies *unconditionally* at any
+accumulator type `α`.  We restate it here without the typeclass
+parameters as an explicit, closed-form claim — the answer to "is
+this toy LLM, run on the MX kernels as currently specified, batch-
+invariant?" is yes, and *this* is the named statement of that. -/
+
+/-- **Batch invariance of the toy LLM under the MX backend.**
+    Same five conjuncts as `toyLLM_batch_invariant`, but stated
+    without the `[Backend α] [BatchInvariant α]` hypotheses — those
+    are discharged by `instBackendMX` and `instBatchInvariantMX`.
+
+    In particular: at `α = IEEEFloat 8 23` (FP32) — or any other
+    accumulator type — the MX-backed toy LLM's per-batch-position
+    forward output, input gradient, and per-example weight-gradient
+    contribution are bitwise functions of that single position's
+    input.  Reordering the batch reorders the outputs likewise. -/
+theorem toyLLM_batch_invariant_MX
+    {α : Type} {V K m : Nat} (M : Demo.BatchInvariance.Model.ToyLLM α V K m)
+    (LB : Demo.BatchInvariance.Backward.LayerBwd α K m V)
+    (decodeX : MX.MXVec K m → Fin (K * m) → α) (mulOp : α → α → α)
+    {B : Nat} (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α)
+    (b : Fin B) (v : Fin V) (i : Fin (K * m))
+    (σ : Equiv.Perm (Fin B)) :
+    M.forwardBatch tokens b v = M.forwardRow (tokens b) v
+  ∧ M.gradHiddenBatch LB tokens dLogit b i =
+      M.gradHiddenRow LB (tokens b) (dLogit b) i
+  ∧ M.weightGradBatch LB decodeX mulOp tokens dLogit b v i =
+      M.weightGradRow LB decodeX mulOp (tokens b) (dLogit b) v i
+  ∧ M.forwardBatch (tokens ∘ σ) b v = M.forwardBatch tokens (σ b) v
+  ∧ M.gradHiddenBatch LB (tokens ∘ σ) (dLogit ∘ σ) b i =
+      M.gradHiddenBatch LB tokens dLogit (σ b) i
+  ∧ M.weightGradBatch LB decodeX mulOp (tokens ∘ σ) (dLogit ∘ σ) b v i =
+      M.weightGradBatch LB decodeX mulOp tokens dLogit (σ b) v i :=
+  toyLLM_batch_invariant M LB decodeX mulOp tokens dLogit b v i σ
+
 end Demo.BatchInvariance
