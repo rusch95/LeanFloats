@@ -85,5 +85,73 @@ which kernel behavior breaks reproducibility.
                                                 plus its permutation
                                                 corollary.
 
-The headline theorem will land in this file once the backend
-abstraction and the toy LLM are in place. -/
+## The headline
+
+`toyLLM_batch_invariant` (below) bundles all five claims into a
+single conjunction.  The individual theorems live in
+`Demo.BatchInvariance.Model` (forward, input gradient, weight
+gradient, plus permutation versions of each); this file's
+contribution is the `super duper clear top-level statement`. -/
+
+namespace Demo.BatchInvariance
+open Demo.BatchInvariance.Model MX
+
+/-- ## Batch invariance of the toy LLM (forward, backward, and order)
+
+For any backend `α` satisfying the `BatchInvariant` interface, any
+toy LLM `M`, any batch of `B` tokens, any upstream gradient
+`dLogit`, any batch position `b`, and any permutation `σ` of the
+batch:
+
+  (1) Forward at row `b` equals the singleton forward.
+  (2) Input gradient at row `b` equals the singleton input gradient.
+  (3) Per-example parameter-gradient contribution at row `b`
+      equals the singleton parameter gradient.
+  (4) Permuting the batch permutes the forward output likewise.
+  (5) Permuting the batch permutes the gradients likewise.
+
+Bitwise — every `=` is at the FP-encoding level, not modulo ε.
+
+The hostile-backend story:  this theorem holds for *any*
+`Backend α` that comes with a `BatchInvariant α` instance.
+Future hostile backends modelling cuBLAS-style split-K with batch-
+dependent split factor, tensor-core mixed-precision accumulation,
+atomic-add nondeterminism, or FMA fusion are expected to *fail*
+the `BatchInvariant` axioms (or satisfy them only under
+restrictions).  When such a backend is plugged in, this theorem
+either does not apply (no `BatchInvariant` instance) or applies
+under the restrictions stated by the hostile backend's instance —
+making the gap between "math we proved" and "what the silicon
+runs" precise and inspectable. -/
+theorem toyLLM_batch_invariant
+    {α : Type} [Backend α] [BatchInvariant α]
+    {V K m : Nat} (M : ToyLLM α V K m)
+    (LB : Backward.LayerBwd α K m V)
+    (decodeX : MXVec K m → Fin (K * m) → α) (mulOp : α → α → α)
+    {B : Nat} (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α)
+    (b : Fin B) (v : Fin V) (i : Fin (K * m))
+    (σ : Equiv.Perm (Fin B)) :
+    -- (1) forward batch invariance
+    M.forwardBatch tokens b v = M.forwardRow (tokens b) v
+  ∧ -- (2) input gradient batch invariance
+    M.gradHiddenBatch LB tokens dLogit b i =
+      M.gradHiddenRow LB (tokens b) (dLogit b) i
+  ∧ -- (3) per-example weight gradient batch invariance
+    M.weightGradBatch LB decodeX mulOp tokens dLogit b v i =
+      M.weightGradRow LB decodeX mulOp (tokens b) (dLogit b) v i
+  ∧ -- (4) forward permutation invariance
+    M.forwardBatch (tokens ∘ σ) b v = M.forwardBatch tokens (σ b) v
+  ∧ -- (5a) input gradient permutation invariance
+    M.gradHiddenBatch LB (tokens ∘ σ) (dLogit ∘ σ) b i =
+      M.gradHiddenBatch LB tokens dLogit (σ b) i
+  ∧ -- (5b) weight gradient permutation invariance
+    M.weightGradBatch LB decodeX mulOp (tokens ∘ σ) (dLogit ∘ σ) b v i =
+      M.weightGradBatch LB decodeX mulOp tokens dLogit (σ b) v i :=
+  ⟨ M.forwardBatch_eq_forwardRow tokens b v
+  , M.gradHiddenBatch_eq_gradHiddenRow LB tokens dLogit b i
+  , M.weightGradBatch_eq_weightGradRow LB decodeX mulOp tokens dLogit b v i
+  , M.forwardBatch_permute tokens σ b v
+  , M.gradHiddenBatch_permute LB tokens dLogit σ b i
+  , M.weightGradBatch_permute LB decodeX mulOp tokens dLogit σ b v i ⟩
+
+end Demo.BatchInvariance

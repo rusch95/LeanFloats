@@ -119,6 +119,105 @@ theorem forwardBatch_permute [Backend α] [BatchInvariant α]
   rw [forwardBatch_eq_forwardRow, forwardBatch_eq_forwardRow]
   rfl
 
+/-! ## Backward pass: input gradient through the unembedding
+
+The model's only Backend-routed step is the unembedding linear
+layer.  Backward through it produces ∂L/∂hidden given an upstream
+∂L/∂logit (one row's worth at each batch position).  The block
+and embedding are pure functions; their backward is implicit in
+the row-locality of the forward.
+
+The toy model takes the unembedding's `LayerBwd` as a parameter
+of the backward call (rather than baking it into the model
+structure) — its `actGrad` and transpose-GEMM kernel are training-
+loop concerns, separate from the model definition. -/
+
+/-- Per-token input gradient at the unembedding's input. -/
+def gradHiddenRow (M : ToyLLM α V K m) (LB : Backward.LayerBwd α K m V)
+    (token : Fin V) (dLogit : Fin V → α) : Fin (K * m) → α :=
+  LB.apply (M.hiddenRow token) dLogit
+
+/-- Batched input gradient: routed through `Backend.layerBwdApplyBatch`. -/
+def gradHiddenBatch [Backend α] (M : ToyLLM α V K m)
+    (LB : Backward.LayerBwd α K m V) {B : Nat}
+    (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α) :
+    Fin B → Fin (K * m) → α :=
+  fun b i => Backend.layerBwdApplyBatch LB (M.hiddenBatch tokens) dLogit b i
+
+/-- **Backward-pass batch invariance — input gradient.**
+    `gradHiddenBatch tokens dLogit b i = gradHiddenRow (tokens b) (dLogit b) i`. -/
+theorem gradHiddenBatch_eq_gradHiddenRow [Backend α] [BatchInvariant α]
+    (M : ToyLLM α V K m) (LB : Backward.LayerBwd α K m V) {B : Nat}
+    (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α)
+    (b : Fin B) (i : Fin (K * m)) :
+    M.gradHiddenBatch LB tokens dLogit b i =
+      M.gradHiddenRow LB (tokens b) (dLogit b) i := by
+  unfold gradHiddenBatch gradHiddenRow hiddenBatch
+  rw [BatchInvariant.layerBwd_batch_eq_apply, List.Vector.get_ofFn]
+
+/-- **Permutation invariance — input gradient.**  Same shape as
+    forward: reordering input tokens (and the corresponding upstream
+    gradients) reorders the input gradient likewise. -/
+theorem gradHiddenBatch_permute [Backend α] [BatchInvariant α]
+    (M : ToyLLM α V K m) (LB : Backward.LayerBwd α K m V) {B : Nat}
+    (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α)
+    (σ : Equiv.Perm (Fin B)) (b : Fin B) (i : Fin (K * m)) :
+    M.gradHiddenBatch LB (tokens ∘ σ) (dLogit ∘ σ) b i =
+      M.gradHiddenBatch LB tokens dLogit (σ b) i := by
+  rw [gradHiddenBatch_eq_gradHiddenRow, gradHiddenBatch_eq_gradHiddenRow]
+  rfl
+
+/-! ## Per-example weight gradient
+
+Per-example weight gradient contribution: `dW_per_sample[b, v, i]
+= h[b, i] · dlogit[b, v]`.  Computed per-row; the across-batch
+sum (which gives the actual ∂L/∂W) is left to whatever reduction
+tree the optimizer chooses.
+
+Decode and `mulOp` are kernel parameters: `decodeX` recovers the
+α-typed value of a single MX entry (e.g. `MXVec.decode i`), and
+`mulOp` is α's multiplication. -/
+
+/-- Per-token, per-(v, i) weight-gradient contribution. -/
+def weightGradRow (M : ToyLLM α V K m) (LB : Backward.LayerBwd α K m V)
+    (decodeX : MXVec K m → Fin (K * m) → α) (mulOp : α → α → α)
+    (token : Fin V) (dLogit : Fin V → α) :
+    Fin V → Fin (K * m) → α :=
+  Backward.WeightGrad.perSample LB decodeX mulOp (M.hiddenRow token) dLogit
+
+/-- Batched per-example weight-gradient contribution: routed
+    through `Backend.weightGradPerSampleBatch`. -/
+def weightGradBatch [Backend α] (M : ToyLLM α V K m)
+    (LB : Backward.LayerBwd α K m V)
+    (decodeX : MXVec K m → Fin (K * m) → α) (mulOp : α → α → α)
+    {B : Nat} (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α) :
+    Fin B → Fin V → Fin (K * m) → α :=
+  fun b => Backend.weightGradPerSampleBatch LB decodeX mulOp
+            (M.hiddenBatch tokens) dLogit b
+
+/-- **Per-example weight-gradient batch invariance.**
+    `weightGradBatch tokens dLogit b v i = weightGradRow (tokens b) (dLogit b) v i`. -/
+theorem weightGradBatch_eq_weightGradRow [Backend α] [BatchInvariant α]
+    (M : ToyLLM α V K m) (LB : Backward.LayerBwd α K m V)
+    (decodeX : MXVec K m → Fin (K * m) → α) (mulOp : α → α → α) {B : Nat}
+    (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α)
+    (b : Fin B) (v : Fin V) (i : Fin (K * m)) :
+    M.weightGradBatch LB decodeX mulOp tokens dLogit b v i =
+      M.weightGradRow LB decodeX mulOp (tokens b) (dLogit b) v i := by
+  unfold weightGradBatch weightGradRow hiddenBatch
+  rw [BatchInvariant.weightGrad_batch_eq_apply, List.Vector.get_ofFn]
+
+/-- **Permutation invariance — per-example weight gradient.** -/
+theorem weightGradBatch_permute [Backend α] [BatchInvariant α]
+    (M : ToyLLM α V K m) (LB : Backward.LayerBwd α K m V)
+    (decodeX : MXVec K m → Fin (K * m) → α) (mulOp : α → α → α) {B : Nat}
+    (tokens : Fin B → Fin V) (dLogit : Fin B → Fin V → α)
+    (σ : Equiv.Perm (Fin B)) (b : Fin B) (v : Fin V) (i : Fin (K * m)) :
+    M.weightGradBatch LB decodeX mulOp (tokens ∘ σ) (dLogit ∘ σ) b v i =
+      M.weightGradBatch LB decodeX mulOp tokens dLogit (σ b) v i := by
+  rw [weightGradBatch_eq_weightGradRow, weightGradBatch_eq_weightGradRow]
+  rfl
+
 end ToyLLM
 
 end Demo.BatchInvariance.Model
