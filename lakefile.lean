@@ -2,7 +2,8 @@ import Lake
 open Lake DSL
 
 /-! Lean 4 / Mathlib formalizations of strict IEEE 754 binary floats
-    (`IEEEFloat`) and the OCP Microscaling FP4 spec (`MX`). -/
+    (`IEEEFloat`), low-precision scalar formats (`LowFloat`), and
+    block-scaled formats (`MX`, `NV`). -/
 
 package «LeanFloats» where
   leanOptions := #[
@@ -16,6 +17,11 @@ require "leanprover-community" / "mathlib" @ git "v4.28.0"
 lean_lib IEEEFloat where
   roots := #[`IEEEFloat]
   globs := #[.andSubmodules `IEEEFloat]
+
+@[default_target]
+lean_lib LowFloat where
+  roots := #[`LowFloat]
+  globs := #[.andSubmodules `LowFloat]
 
 @[default_target]
 lean_lib MX where
