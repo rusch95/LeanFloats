@@ -19,6 +19,7 @@ import MX.GEMM_FP32
 import MX.TreeDependence
 import MX.RMSNorm
 import MX.Softmax
+import MX.Examples
 
 /-! # MXFP4 — OCP Microscaling FP4 (block-scaled 4-bit float)
 

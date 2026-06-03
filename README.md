@@ -39,7 +39,7 @@ The MX layer ships `E2M1` / `E8M0` / `MXBlock`, decode/encode/round, ops + backe
 
 The NV layer ships `E4M3` / `NVBlock` / decode semantics for NVFP4 micro-blocks; quantizer selection and kernel-level theorems are intentionally left for follow-up.
 
-For per-module summaries see the doc-comments in [`IEEEFloat.lean`](IEEEFloat.lean), [`LowFloat.lean`](LowFloat.lean), [`MX.lean`](MX.lean), and [`NV.lean`](NV.lean).
+For per-module summaries see the doc-comments in [`IEEEFloat.lean`](IEEEFloat.lean), [`LowFloat.lean`](LowFloat.lean), [`MX.lean`](MX.lean), and [`NV.lean`](NV.lean).  For theorem-driven next steps, see [`ROADMAP.md`](ROADMAP.md).
 
 ## Downstream
 
