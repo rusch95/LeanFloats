@@ -51,12 +51,14 @@ theorem abs_neg_eq (x : E2M1) : abs (-x) = abs x := by
     8 (e, m) patterns. -/
 private theorem toReal_pos_nonneg (e : Fin 4) (m : Fin 2) :
     0 ≤ toReal ⟨false, e, m⟩ := by
-  fin_cases e <;> fin_cases m <;> (unfold toReal bias; norm_num)
+  fin_cases e <;> fin_cases m <;>
+    (dsimp [toReal, LowFloat.FP4.E2M1.toReal, bias, LowFloat.FP4.E2M1.bias]; norm_num)
 
 /-- Sign-flip on the bit pattern negates `toReal`. -/
 private theorem toReal_pat_neg (e : Fin 4) (m : Fin 2) :
     toReal ⟨true, e, m⟩ = -toReal ⟨false, e, m⟩ := by
-  fin_cases e <;> fin_cases m <;> (unfold toReal bias; norm_num)
+  fin_cases e <;> fin_cases m <;>
+    (dsimp [toReal, LowFloat.FP4.E2M1.toReal, bias, LowFloat.FP4.E2M1.bias]; norm_num)
 
 /-- `abs` and the real-valued absolute value agree.  Every E2M1 has
     `|toReal| ∈ {0, 0.5, 1, 1.5, 2, 3, 4, 6}`. -/
@@ -162,7 +164,7 @@ instance : Neg (MXBlock K) := ⟨neg⟩
 /-- Block-neg is element-wise neg. -/
 @[simp] theorem neg_elements_get (b : MXBlock K) (i : Fin K) :
     (neg b).elements.get i = -(b.elements.get i) := by
-  simp [neg, List.Vector.get_map, E2M1.neg]
+  simp [neg, List.Vector.get_map, E2M1.neg, LowFloat.FP4.E2M1.neg]
 
 /-- Block-abs is idempotent. -/
 theorem abs_abs (b : MXBlock K) : abs (abs b) = abs b := by

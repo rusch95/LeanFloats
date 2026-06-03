@@ -52,18 +52,20 @@ noncomputable def blockDot (a b : MXBlock K) : ℝ :=
 theorem blockDot_nan_left (a b : MXBlock K) (h : a.isNaN = true) :
     blockDot a b = 0 := by
   have h_eq : a.scale.toRealOrZero = 0 := by
-    unfold E8M0.toRealOrZero
-    simp [isNaN, E8M0.isNaN] at h
-    rw [if_pos h]
+    have h_raw : a.scale.raw = LowFloat.FP8.OCP.E8M0.nanRaw := by
+      simpa [isNaN, E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN] using h
+    dsimp [E8M0.toRealOrZero, LowFloat.FP8.OCP.E8M0.toRealOrZero]
+    rw [if_pos h_raw]
   unfold blockDot; rw [h_eq]; ring
 
 /-- A NaN-tagged right operand zeros the block dot. -/
 theorem blockDot_nan_right (a b : MXBlock K) (h : b.isNaN = true) :
     blockDot a b = 0 := by
   have h_eq : b.scale.toRealOrZero = 0 := by
-    unfold E8M0.toRealOrZero
-    simp [isNaN, E8M0.isNaN] at h
-    rw [if_pos h]
+    have h_raw : b.scale.raw = LowFloat.FP8.OCP.E8M0.nanRaw := by
+      simpa [isNaN, E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN] using h
+    dsimp [E8M0.toRealOrZero, LowFloat.FP8.OCP.E8M0.toRealOrZero]
+    rw [if_pos h_raw]
   unfold blockDot; rw [h_eq]; ring
 
 /-- For non-NaN blocks, `blockDot` equals the inner-sum-then-scale form

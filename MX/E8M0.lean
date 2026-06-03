@@ -3,8 +3,8 @@ import LowFloat.FP8.OCP.E8M0
 /-! # Compatibility re-export for MX E8M0
 
 The canonical scalar type now lives at `LowFloat.FP8.OCP.E8M0`.
-This module preserves the historical `MX.E8M0` API, including
-concrete wrapper definitions that old MX proofs unfold directly.
+This module preserves the historical `MX.E8M0` API as reducible
+aliases to the canonical definitions.
 -/
 
 namespace MX
@@ -14,67 +14,26 @@ abbrev E8M0 : Type := LowFloat.FP8.OCP.E8M0
 
 namespace E8M0
 
-instance : Inhabited E8M0 := ⟨⟨127⟩⟩
+abbrev bias : Int := LowFloat.FP8.OCP.E8M0.bias
+abbrev nanRaw : Fin 256 := LowFloat.FP8.OCP.E8M0.nanRaw
+abbrev nan : E8M0 := LowFloat.FP8.OCP.E8M0.nan
+abbrev one : E8M0 := LowFloat.FP8.OCP.E8M0.one
+abbrev isNaN : E8M0 → Bool := LowFloat.FP8.OCP.E8M0.isNaN
 
-/-- Bias for E8M0: 127. -/
-def bias : Int := 127
+noncomputable abbrev toReal : E8M0 → Option ℝ :=
+  LowFloat.FP8.OCP.E8M0.toReal
 
-/-- The raw value reserved for NaN. -/
-def nanRaw : Fin 256 := 255
+noncomputable abbrev toRealOrZero : E8M0 → ℝ :=
+  LowFloat.FP8.OCP.E8M0.toRealOrZero
 
-/-- A specific E8M0 NaN. -/
-def nan : E8M0 := ⟨nanRaw⟩
+export LowFloat.FP8.OCP.E8M0
+  (isNaN_nan isNaN_one toReal_range)
 
-/-- The scale value `1`: raw = 127. -/
-def one : E8M0 := ⟨127⟩
+theorem one_toReal : ((⟨127⟩ : E8M0)).toReal = some 1 :=
+  LowFloat.FP8.OCP.E8M0.one_toReal
 
-def isNaN (x : E8M0) : Bool := x.raw = nanRaw
-
-@[simp] theorem isNaN_nan : isNaN nan = true := by
-  unfold isNaN nan
-  rfl
-
-@[simp] theorem isNaN_one : isNaN one = false := by
-  unfold isNaN one nanRaw
-  rfl
-
-/-- Decode an E8M0 to its scale factor.  `none` for NaN. -/
-noncomputable def toReal (x : E8M0) : Option ℝ :=
-  if x.raw = nanRaw then none
-  else some ((2 : ℝ) ^ ((x.raw.val : Int) - bias))
-
-/-- Decode with `0` as a sentinel for NaN. -/
-noncomputable def toRealOrZero (x : E8M0) : ℝ :=
-  if x.raw = nanRaw then 0
-  else (2 : ℝ) ^ ((x.raw.val : Int) - bias)
-
-theorem one_toReal : one.toReal = some 1 := by
-  unfold toReal one bias nanRaw
-  simp
-
-theorem nan_toReal : nan.toReal = none := by
-  unfold toReal nan nanRaw
-  simp
-
-/-- Range of representable non-NaN scales: `2^{-127}` to `2^{127}`. -/
-theorem toReal_range (x : E8M0) (hx : x.isNaN = false) :
-    ∃ k : Int, (-127 ≤ k ∧ k ≤ 127) ∧ x.toReal = some ((2 : ℝ) ^ k) := by
-  have h_ne : x.raw ≠ nanRaw := by
-    intro h
-    simp [isNaN, h] at hx
-  refine ⟨(x.raw.val : Int) - bias, ?_, ?_⟩
-  · refine ⟨?_, ?_⟩
-    · unfold bias
-      have : (0 : Int) ≤ x.raw.val := Int.natCast_nonneg _
-      linarith
-    · unfold bias
-      have h_ne_val : x.raw.val ≠ 255 := fun h_eq => h_ne (Fin.ext h_eq)
-      have : (x.raw.val : Int) ≤ 254 := by
-        have : x.raw.val ≤ 254 := by omega
-        exact_mod_cast this
-      linarith
-  · unfold toReal
-    rw [if_neg h_ne]
+theorem nan_toReal : nan.toReal = none :=
+  LowFloat.FP8.OCP.E8M0.nan_toReal
 
 end E8M0
 

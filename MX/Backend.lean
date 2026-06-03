@@ -123,20 +123,24 @@ theorem mul_isCorrectlyMul (a b : E8M0) :
     have h_or : a.raw.val = 255 ∨ b.raw.val = 255 := by
       rcases h with h | h
       · left
-        have : a.raw = nanRaw := by simp [isNaN] at h; exact h
+        have : a.raw = nanRaw := by
+          simp [isNaN, LowFloat.FP8.OCP.E8M0.isNaN] at h
+          exact h
         exact Fin.val_eq_of_eq this
       · right
-        have : b.raw = nanRaw := by simp [isNaN] at h; exact h
+        have : b.raw = nanRaw := by
+          simp [isNaN, LowFloat.FP8.OCP.E8M0.isNaN] at h
+          exact h
         exact Fin.val_eq_of_eq this
     rw [if_pos h_or]
   · intro ha hb h_lo h_hi
     unfold mul
     have h_ne_a : a.raw.val ≠ 255 := fun he => by
       have : a.raw = nanRaw := Fin.ext he
-      simp [isNaN, this] at ha
+      simp [isNaN, LowFloat.FP8.OCP.E8M0.isNaN, this] at ha
     have h_ne_b : b.raw.val ≠ 255 := fun he => by
       have : b.raw = nanRaw := Fin.ext he
-      simp [isNaN, this] at hb
+      simp [isNaN, LowFloat.FP8.OCP.E8M0.isNaN, this] at hb
     rw [if_neg (by tauto : ¬ (a.raw.val = 255 ∨ b.raw.val = 255))]
     have h_lo' : ¬ a.raw.val + b.raw.val < 127 := by omega
     have h_hi' : ¬ a.raw.val + b.raw.val ≥ 381 := by omega
@@ -148,14 +152,16 @@ theorem inv_isCorrectlyInv (a : E8M0) :
   · intro h
     unfold inv
     have he : a.raw.val = 255 := by
-      have : a.raw = nanRaw := by simp [isNaN] at h; exact h
+      have : a.raw = nanRaw := by
+        simp [isNaN, LowFloat.FP8.OCP.E8M0.isNaN] at h
+        exact h
       exact Fin.val_eq_of_eq this
     rw [if_pos he]
   · intro h
     unfold inv
     have h_ne : a.raw.val ≠ 255 := fun he => by
       have : a.raw = nanRaw := Fin.ext he
-      simp [isNaN, this] at h
+      simp [isNaN, LowFloat.FP8.OCP.E8M0.isNaN, this] at h
     rw [if_neg h_ne]
 
 end E8M0

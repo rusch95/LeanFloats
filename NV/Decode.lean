@@ -31,10 +31,10 @@ theorem decodeAt_eq (tensorScale : ℝ) (b : NVBlock K) (i : Fin K) :
     b.decodeAt tensorScale i = if b.scale.isNaN
       then none
       else some (tensorScale * b.scale.toRealOrZero * (b.elements.get i).toReal) := by
-  unfold decodeAt E4M3.toReal E4M3.toRealOrZero
-  by_cases h : b.scale.isNaN
-  · simp [h]
-  · simp [h]
+  unfold decodeAt
+  by_cases h : LowFloat.FP8.OCP.E4M3.isNaN b.scale
+  · simp [LowFloat.FP8.OCP.E4M3.toReal, h]
+  · simp [LowFloat.FP8.OCP.E4M3.toReal, LowFloat.FP8.OCP.E4M3.toRealOrZero, h]
 
 theorem decodeAt_nan (tensorScale : ℝ) (b : NVBlock K)
     (h : b.isNaN = true) (i : Fin K) :

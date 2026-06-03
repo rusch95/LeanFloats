@@ -70,8 +70,8 @@ theorem toRealOrZero_pos (s : E8M0) (hns : s.isNaN = false) :
     0 < s.toRealOrZero := by
   have h_ne : s.raw ≠ E8M0.nanRaw := by
     intro h
-    simp [E8M0.isNaN, h] at hns
-  unfold E8M0.toRealOrZero
+    simp [E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN, h] at hns
+  dsimp [E8M0.toRealOrZero, LowFloat.FP8.OCP.E8M0.toRealOrZero]
   rw [if_neg h_ne]
   exact zpow_pos (by norm_num) _
 
@@ -101,7 +101,7 @@ theorem roundRNE_zero_toReal : (roundRNE (0 : ℝ)).toReal = 0 := by
     rw [abs_zero]; unfold E2M1.overflowBoundary; norm_num
   have ⟨hmin, _⟩ := h.2 hin
   -- The roundRNE 0 must be at distance 0 (since +0 is at distance 0).
-  have hpz : |E2M1.toReal (⟨false, 0, 0⟩ : E2M1) - 0| = 0 := by
+  have hpz : |((⟨false, 0, 0⟩ : E2M1)).toReal - 0| = 0 := by
     rw [E2M1.toReal_pos_zero]; simp
   have h_le : |(roundRNE 0).toReal - 0| ≤ 0 := by
     have := hmin ⟨false, 0, 0⟩
@@ -138,12 +138,12 @@ A *minimal* (optimal) scale would pick `2^k` for
 def maxScale : E8M0 := ⟨⟨254, by omega⟩⟩
 
 @[simp] theorem maxScale_isNaN : maxScale.isNaN = false := by
-  simp [E8M0.isNaN, maxScale, E8M0.nanRaw]
+  simp [LowFloat.FP8.OCP.E8M0.isNaN, LowFloat.FP8.OCP.E8M0.nanRaw, maxScale]
 
 @[simp] theorem maxScale_toRealOrZero :
     maxScale.toRealOrZero = (2 : ℝ) ^ (127 : ℤ) := by
-  unfold E8M0.toRealOrZero maxScale E8M0.bias E8M0.nanRaw
-  simp
+  dsimp [E8M0.toRealOrZero, LowFloat.FP8.OCP.E8M0.toRealOrZero, maxScale,
+    E8M0.bias, LowFloat.FP8.OCP.E8M0.bias, LowFloat.FP8.OCP.E8M0.nanRaw]
 
 /-- **Existence of a fitting scale.**  Any vector whose absolute
     values are bounded by `6 · 2^127` admits a non-NaN E8M0 scale
@@ -244,17 +244,21 @@ def halfScale (s : E8M0) (h : 0 < s.raw.val) : E8M0 :=
 
 theorem halfScale_isNaN (s : E8M0) (h : 0 < s.raw.val) :
     (halfScale s h).isNaN = false := by
-  unfold halfScale E8M0.isNaN E8M0.nanRaw
+  unfold halfScale
+  dsimp [E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN, LowFloat.FP8.OCP.E8M0.nanRaw]
   have := s.raw.isLt
   simp [Fin.ext_iff]; omega
 
 theorem halfScale_toRealOrZero (s : E8M0) (h : 0 < s.raw.val)
     (hs : s.isNaN = false) :
     (halfScale s h).toRealOrZero = s.toRealOrZero / 2 := by
-  unfold halfScale E8M0.toRealOrZero E8M0.bias E8M0.nanRaw
+  unfold halfScale
+  dsimp [E8M0.toRealOrZero, LowFloat.FP8.OCP.E8M0.toRealOrZero,
+    E8M0.bias, LowFloat.FP8.OCP.E8M0.bias, LowFloat.FP8.OCP.E8M0.nanRaw]
   have h_ne : s.raw ≠ (255 : Fin 256) := by
     intro heq
-    simp [E8M0.isNaN, E8M0.nanRaw, heq] at hs
+    simp [E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN,
+      LowFloat.FP8.OCP.E8M0.nanRaw, heq] at hs
   have h_half_ne : (⟨s.raw.val - 1, by have := s.raw.isLt; omega⟩ : Fin 256) ≠
       (255 : Fin 256) := by
     intro heq
@@ -314,9 +318,12 @@ theorem optimalScale_le_third_maxAbs {K : Nat}
     push_neg at hraw
     have hraw_eq : s.raw.val = 0 := by omega
     have hs_eq : s.toRealOrZero = (2 : ℝ) ^ (-127 : ℤ) := by
-      unfold E8M0.toRealOrZero E8M0.bias E8M0.nanRaw
+      dsimp [E8M0.toRealOrZero, LowFloat.FP8.OCP.E8M0.toRealOrZero,
+        E8M0.bias, LowFloat.FP8.OCP.E8M0.bias, LowFloat.FP8.OCP.E8M0.nanRaw]
       have h_ne : s.raw ≠ (255 : Fin 256) := by
-        intro heq; simp [E8M0.isNaN, E8M0.nanRaw, heq] at hs_nan
+        intro heq
+        simp [E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN,
+          LowFloat.FP8.OCP.E8M0.nanRaw, heq] at hs_nan
       rw [if_neg h_ne]
       have : ((s.raw.val : ℤ) - 127 : ℤ) = -127 := by rw [hraw_eq]; ring
       rw [this]

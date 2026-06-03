@@ -31,19 +31,19 @@ theorem decodeAt_eq (b : MXBlock K) (i : Fin K) :
     b.decodeAt i = if b.scale.isNaN
       then none
       else some (b.scale.toRealOrZero * (b.elements.get i).toReal) := by
-  unfold decodeAt E8M0.toReal E8M0.toRealOrZero E8M0.isNaN
-  by_cases h : b.scale.raw = E8M0.nanRaw
-  · simp [h]
-  · simp [h]
+  unfold decodeAt
+  by_cases h : b.scale.raw = LowFloat.FP8.OCP.E8M0.nanRaw
+  · simp [LowFloat.FP8.OCP.E8M0.toReal, LowFloat.FP8.OCP.E8M0.isNaN, h]
+  · simp [LowFloat.FP8.OCP.E8M0.toReal, LowFloat.FP8.OCP.E8M0.toRealOrZero,
+      LowFloat.FP8.OCP.E8M0.isNaN, h]
 
 /-! ## All-NaN propagation -/
 
 theorem decodeAt_nan (b : MXBlock K) (h : b.isNaN = true) (i : Fin K) :
     b.decodeAt i = none := by
   unfold decodeAt
-  simp [isNaN, E8M0.isNaN] at h
-  unfold E8M0.toReal
-  simp [h]
+  simp [isNaN, E8M0.isNaN, LowFloat.FP8.OCP.E8M0.isNaN] at h
+  simp [LowFloat.FP8.OCP.E8M0.toReal, h]
 
 theorem decodeAt_finite (b : MXBlock K) (h : b.isNaN = false) (i : Fin K) :
     b.decodeAt i = some (b.scale.toRealOrZero * (b.elements.get i).toReal) := by
