@@ -1,5 +1,5 @@
 import IEEEFloat.FloatSpec
-import IEEEFloat.Backend
+import IEEEFloat.ErrorBounds
 import IEEEFloat.Formats
 
 /-! # `IEEEFloat.FloatSpec` instance for `F32`
@@ -9,13 +9,10 @@ import IEEEFloat.Formats
   *  unit roundoff `u = 2⁻²⁴` (1 ULP relative bound `2⁻²³`)
   *  the standard ML training and inference precision
 
-The `IEEEFloat.FloatSpec F32` instance is **axiomatized** — it
-trusts that the platform's faithful-rounding `binary32` arithmetic
-obeys the standard 1-ULP relative-error bound.  The bound's actual
-regime of validity is normal-range arithmetic; per-op axioms ship
-in two forms (`*_error_normal` precondition'd, `*_error`
-unconditional) — see `IEEEFloat/FloatSpec.lean` for the full
-discussion. -/
+The `IEEEFloat.FloatSpec F32` instance is theorem-backed: its
+normal-result relative-error bounds are derived from the generic
+correct-rounding backend and the half-ULP theorem in
+`IEEEFloat.ErrorBounds`. -/
 
 namespace IEEEFloat.F32
 
@@ -46,83 +43,42 @@ noncomputable def mul (a b : F32) : F32 :=
 noncomputable def div (a b : F32) : F32 :=
   IEEEFloat.div (eb := 8) (mb := 23) (by decide) (by decide) a b
 
-/-! ## Per-op error bounds — two forms
-
-Each binary op carries *two* error-bound axioms:
-
-  * `*_error_normal` — precondition'd by `(add a b).isNormal = true`.
-    This is the **rigorous** form: the 1-ULP relative bound is
-    actually true exactly when the rounded result is a normal float
-    (i.e., not subnormal underflow).  Provable from
-    `IEEEFloat.add_isCorrectlyRounded` plus
-    `IEEEFloat.UlpBound.half_ulp_bound`; currently still
-    axiomatized for time, but the precondition correctly delimits
-    the regime where the bound holds.
-
-  * `*_error` — unconditional, **looser/aspirational** form.  The
-    bound stated here is *false* in subnormal underflow (the
-    relative error can be arbitrarily large near zero).  Used by
-    the `FloatSpec` typeclass field, and by existing forward-error
-    consumers in `wgsl-to-lean` that assume normal-range arithmetic
-    implicitly.  Derivable from `*_error_normal` plus a "no
-    subnormal underflow" assumption. -/
+/-! ## Per-op error bounds -/
 
 /-- Predicate: the F32 value is a normal IEEE 754 float. -/
 def isNormal (x : F32) : Prop := IEEEFloat.isNormal x = true
 
-axiom add_error_normal (a b : F32) (h_norm : isNormal (add a b)) :
+theorem add_error_normal (a b : F32) (h_norm : isNormal (add a b)) :
   |toReal (add a b) - (toReal a + toReal b)|
-    ≤ ulpBound * |toReal a + toReal b|
+    ≤ ulpBound * |toReal a + toReal b| := by
+  simpa [toReal, add, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.add_relative_error_normal (eb := 8) (mb := 23)
+      (by decide) (by decide) a b h_norm
 
-axiom sub_error_normal (a b : F32) (h_norm : isNormal (sub a b)) :
+theorem sub_error_normal (a b : F32) (h_norm : isNormal (sub a b)) :
   |toReal (sub a b) - (toReal a - toReal b)|
-    ≤ ulpBound * |toReal a - toReal b|
+    ≤ ulpBound * |toReal a - toReal b| := by
+  simpa [toReal, sub, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.sub_relative_error_normal (eb := 8) (mb := 23)
+      (by decide) (by decide) a b h_norm
 
-axiom mul_error_normal (a b : F32) (h_norm : isNormal (mul a b)) :
+theorem mul_error_normal (a b : F32) (h_norm : isNormal (mul a b)) :
   |toReal (mul a b) - toReal a * toReal b|
-    ≤ ulpBound * |toReal a * toReal b|
+    ≤ ulpBound * |toReal a * toReal b| := by
+  simpa [toReal, mul, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.mul_relative_error_normal (eb := 8) (mb := 23)
+      (by decide) (by decide) a b h_norm
 
-axiom div_error_normal (a b : F32) (h_norm : isNormal (div a b)) :
+theorem div_error_normal (a b : F32) (h_norm : isNormal (div a b)) :
   |toReal (div a b) - toReal a / toReal b|
-    ≤ ulpBound * |toReal a / toReal b|
-
-axiom add_error (a b : F32) :
-  |toReal (add a b) - (toReal a + toReal b)|
-    ≤ ulpBound * |toReal a + toReal b|
-
-axiom sub_error (a b : F32) :
-  |toReal (sub a b) - (toReal a - toReal b)|
-    ≤ ulpBound * |toReal a - toReal b|
-
-axiom mul_error (a b : F32) :
-  |toReal (mul a b) - toReal a * toReal b|
-    ≤ ulpBound * |toReal a * toReal b|
-
-axiom div_error (a b : F32) :
-  |toReal (div a b) - toReal a / toReal b|
-    ≤ ulpBound * |toReal a / toReal b|
-
-opaque exp : F32 → F32
-
-axiom exp_error_normal (a : F32) (h_norm : isNormal (exp a)) :
-  |toReal (exp a) - Real.exp (toReal a)|
-    ≤ ulpBound * Real.exp (toReal a)
-
-axiom exp_error (a : F32) :
-  |toReal (exp a) - Real.exp (toReal a)|
-    ≤ ulpBound * Real.exp (toReal a)
-
-opaque max : F32 → F32 → F32
-
-axiom max_exact (a b : F32) :
-  toReal (max a b) = Max.max (toReal a) (toReal b)
+    ≤ ulpBound * |toReal a / toReal b| := by
+  simpa [toReal, div, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.div_relative_error_normal (eb := 8) (mb := 23)
+      (by decide) (by decide) a b h_norm
 
 end IEEEFloat.F32
 
-/-- Axiomatized `FloatSpec` instance for f32.  Uses the unconditional
-    `F32.*_error` axioms; consumers that want the rigorously-true
-    precondition'd form should call `IEEEFloat.F32.*_error_normal`
-    directly. -/
+/-- Theorem-backed `FloatSpec` instance for f32. -/
 noncomputable instance : IEEEFloat.FloatSpec IEEEFloat.F32 where
   toReal := IEEEFloat.F32.toReal
   zero := IEEEFloat.F32.zero
@@ -131,15 +87,12 @@ noncomputable instance : IEEEFloat.FloatSpec IEEEFloat.F32 where
   one_toReal := IEEEFloat.F32.one_toReal
   ulpBound := IEEEFloat.F32.ulpBound
   ulpBound_nonneg := IEEEFloat.F32.ulpBound_nonneg
+  isNormal := IEEEFloat.F32.isNormal
   add := IEEEFloat.F32.add
-  add_error := IEEEFloat.F32.add_error
+  add_error_normal := IEEEFloat.F32.add_error_normal
   sub := IEEEFloat.F32.sub
-  sub_error := IEEEFloat.F32.sub_error
+  sub_error_normal := IEEEFloat.F32.sub_error_normal
   mul := IEEEFloat.F32.mul
-  mul_error := IEEEFloat.F32.mul_error
+  mul_error_normal := IEEEFloat.F32.mul_error_normal
   div := IEEEFloat.F32.div
-  div_error := IEEEFloat.F32.div_error
-  exp := IEEEFloat.F32.exp
-  exp_error := IEEEFloat.F32.exp_error
-  max := IEEEFloat.F32.max
-  max_exact := IEEEFloat.F32.max_exact
+  div_error_normal := IEEEFloat.F32.div_error_normal

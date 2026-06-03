@@ -21,3 +21,8 @@ lean_lib IEEEFloat where
 lean_lib MX where
   roots := #[`MX]
   globs := #[.andSubmodules `MX]
+
+@[default_target]
+lean_lib NV where
+  roots := #[`NV]
+  globs := #[.andSubmodules `NV]

@@ -80,7 +80,8 @@ should layer those on top of the contracts established here.
                             constructor-level and computable.
   *  `IEEEFloat.ErrorBounds` — practical wrappers building on
                             `UlpBound`: per-op half-ULP bounds for
-                            `add`/`sub`/`mul`/`div`/`fma`,
+                            `add`/`sub`/`mul`/`div`/`fma`, plus
+                            normal-result relative-error bounds,
                             `unitRoundoff`, `machineEpsilon`.
   *  `IEEEFloat.Convert`   — integer ↔ float conversions:
                             `convertFromInt`, `truncToInt`,
@@ -92,26 +93,23 @@ should layer those on top of the contracts established here.
                             `IsRoundedTo*` predicates for all five
                             §4.3 directions (only RNE is constructive
                             so far; the others have specs only).
+  *  `IEEEFloat.FloatSpec` — abstract normal-result relative-error
+                            contract, with theorem-backed instances
+                            for `F32` / `F16` / `BF16`.
 
 ## Status
 
-This is the **scaffolding** commit.  All definitions land; no
-substantive theorems are proved yet.  In particular:
+The library has theorem-backed rounding, spacing, bit-encoding, and
+normal-result error-bound layers.  In particular:
 
   *  No `bitcast` / `bitcastFloat32 : Float → IEEEFloat 8 23` shim —
      `Bits.lean` lands the bit-level encoding but the bridge to
      host-native floats (Lean's `Float`) is left for a follow-up
      `IEEEFloat.Host` module.
 
-## Why a spec-only first cut?
-
-Two reasons.  First, the predicates are what *clients* depend on —
-ULP bounds, kernel-equivalence proofs, and the existing WGSL
-`FloatSpec` typeclass all want a contract, not an implementation.
-Landing the contract first lets dependent proofs proceed without
-waiting for a constructive backend.  Second, the constructive
-proofs (RNE existence with tie-breaking, NaN rules, signed-zero
-bookkeeping) are the *interesting* mathematical content of an IEEE
-754 formalization; we want them in their own commit with proper
-attention rather than rolled into a scaffolding diff.
+Unconditional relative-error bounds are deliberately not exposed:
+they fail at subnormal underflow.  Use the normal-result
+`IEEEFloat.FloatSpec` fields or the half-ULP lemmas in
+`IEEEFloat.ErrorBounds` depending on the regime available to the
+caller.
 -/

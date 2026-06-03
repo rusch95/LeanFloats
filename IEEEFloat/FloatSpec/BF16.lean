@@ -1,5 +1,5 @@
 import IEEEFloat.FloatSpec
-import IEEEFloat.Backend
+import IEEEFloat.ErrorBounds
 import IEEEFloat.Formats
 
 /-! # `IEEEFloat.FloatSpec` instance for `BF16` (brain-float 16)
@@ -9,8 +9,9 @@ import IEEEFloat.Formats
   *  unit roundoff `u = 2⁻⁸` (1 ULP relative bound `2⁻⁷`)
   *  used widely in ML training (Google TPU, NVIDIA Ampere+)
 
-See `IEEEFloat/FloatSpec/F32.lean` for the rationale on the two
-forms of error bounds. -/
+The normal-result relative-error bounds are derived from the generic
+correct-rounding backend and the half-ULP theorem in
+`IEEEFloat.ErrorBounds`. -/
 
 namespace IEEEFloat.BF16
 
@@ -37,43 +38,33 @@ noncomputable def div (a b : BF16) : BF16 :=
 
 def isNormal (x : BF16) : Prop := IEEEFloat.isNormal x = true
 
-axiom add_error_normal (a b : BF16) (h_norm : isNormal (add a b)) :
+theorem add_error_normal (a b : BF16) (h_norm : isNormal (add a b)) :
   |toReal (add a b) - (toReal a + toReal b)|
-    ≤ ulpBound * |toReal a + toReal b|
-axiom sub_error_normal (a b : BF16) (h_norm : isNormal (sub a b)) :
+    ≤ ulpBound * |toReal a + toReal b| := by
+  simpa [toReal, add, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.add_relative_error_normal (eb := 8) (mb := 7)
+      (by decide) (by decide) a b h_norm
+
+theorem sub_error_normal (a b : BF16) (h_norm : isNormal (sub a b)) :
   |toReal (sub a b) - (toReal a - toReal b)|
-    ≤ ulpBound * |toReal a - toReal b|
-axiom mul_error_normal (a b : BF16) (h_norm : isNormal (mul a b)) :
+    ≤ ulpBound * |toReal a - toReal b| := by
+  simpa [toReal, sub, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.sub_relative_error_normal (eb := 8) (mb := 7)
+      (by decide) (by decide) a b h_norm
+
+theorem mul_error_normal (a b : BF16) (h_norm : isNormal (mul a b)) :
   |toReal (mul a b) - toReal a * toReal b|
-    ≤ ulpBound * |toReal a * toReal b|
-axiom div_error_normal (a b : BF16) (h_norm : isNormal (div a b)) :
+    ≤ ulpBound * |toReal a * toReal b| := by
+  simpa [toReal, mul, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.mul_relative_error_normal (eb := 8) (mb := 7)
+      (by decide) (by decide) a b h_norm
+
+theorem div_error_normal (a b : BF16) (h_norm : isNormal (div a b)) :
   |toReal (div a b) - toReal a / toReal b|
-    ≤ ulpBound * |toReal a / toReal b|
-
-axiom add_error (a b : BF16) :
-  |toReal (add a b) - (toReal a + toReal b)|
-    ≤ ulpBound * |toReal a + toReal b|
-axiom sub_error (a b : BF16) :
-  |toReal (sub a b) - (toReal a - toReal b)|
-    ≤ ulpBound * |toReal a - toReal b|
-axiom mul_error (a b : BF16) :
-  |toReal (mul a b) - toReal a * toReal b|
-    ≤ ulpBound * |toReal a * toReal b|
-axiom div_error (a b : BF16) :
-  |toReal (div a b) - toReal a / toReal b|
-    ≤ ulpBound * |toReal a / toReal b|
-
-opaque exp : BF16 → BF16
-axiom exp_error_normal (a : BF16) (h_norm : isNormal (exp a)) :
-  |toReal (exp a) - Real.exp (toReal a)|
-    ≤ ulpBound * Real.exp (toReal a)
-axiom exp_error (a : BF16) :
-  |toReal (exp a) - Real.exp (toReal a)|
-    ≤ ulpBound * Real.exp (toReal a)
-
-opaque max : BF16 → BF16 → BF16
-axiom max_exact (a b : BF16) :
-  toReal (max a b) = Max.max (toReal a) (toReal b)
+    ≤ ulpBound * |toReal a / toReal b| := by
+  simpa [toReal, div, ulpBound, isNormal, machineEpsilon] using
+    IEEEFloat.div_relative_error_normal (eb := 8) (mb := 7)
+      (by decide) (by decide) a b h_norm
 
 end IEEEFloat.BF16
 
@@ -85,15 +76,12 @@ noncomputable instance : IEEEFloat.FloatSpec IEEEFloat.BF16 where
   one_toReal := IEEEFloat.BF16.one_toReal
   ulpBound := IEEEFloat.BF16.ulpBound
   ulpBound_nonneg := IEEEFloat.BF16.ulpBound_nonneg
+  isNormal := IEEEFloat.BF16.isNormal
   add := IEEEFloat.BF16.add
-  add_error := IEEEFloat.BF16.add_error
+  add_error_normal := IEEEFloat.BF16.add_error_normal
   sub := IEEEFloat.BF16.sub
-  sub_error := IEEEFloat.BF16.sub_error
+  sub_error_normal := IEEEFloat.BF16.sub_error_normal
   mul := IEEEFloat.BF16.mul
-  mul_error := IEEEFloat.BF16.mul_error
+  mul_error_normal := IEEEFloat.BF16.mul_error_normal
   div := IEEEFloat.BF16.div
-  div_error := IEEEFloat.BF16.div_error
-  exp := IEEEFloat.BF16.exp
-  exp_error := IEEEFloat.BF16.exp_error
-  max := IEEEFloat.BF16.max
-  max_exact := IEEEFloat.BF16.max_exact
+  div_error_normal := IEEEFloat.BF16.div_error_normal

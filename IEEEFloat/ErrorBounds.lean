@@ -56,6 +56,259 @@ theorem unitRoundoff_eq_half_machineEpsilon :
   rw [zpow_add₀ (by norm_num : (2 : ℝ) ≠ 0)]
   ring
 
+/-! ## Relative bounds for normal rounded results -/
+
+/-- An RNE result that is normal must have come from the in-range
+    branch of the RNE spec. -/
+theorem in_range_of_rne_normal
+    (r : ℝ) (z : IEEEFloat eb mb)
+    (h_rne : IsRoundedToNearestEven r z)
+    (h_norm : z.isNormal = true) :
+    |r| < overflowBoundary eb mb := by
+  by_contra h_not
+  have h_over : overflowBoundary eb mb ≤ |r| := le_of_not_gt h_not
+  rcases le_or_gt 0 r with h_nonneg | h_neg
+  · have hz : z = .inf false := (h_rne.1 h_over).1 h_nonneg
+    subst hz
+    simp [isNormal] at h_norm
+  · have hz : z = .inf true := (h_rne.1 h_over).2 h_neg
+    subst hz
+    simp [isNormal] at h_norm
+
+/-- For a normal finite encoding, its ULP is no larger than its
+    magnitude. -/
+theorem ulp_le_abs_of_normal {x : IEEEFloat eb mb}
+    (h_norm : x.isNormal = true) :
+    x.ulp ≤ |x.toRealOrZero| := by
+  cases x with
+  | nan => simp [isNormal] at h_norm
+  | inf _ => simp [isNormal] at h_norm
+  | finite s e m =>
+    simp [isNormal] at h_norm
+    simp only [ulp, toRealOrZero, finiteValue]
+    rw [if_neg h_norm]
+    simp only [h_norm, ↓reduceIte]
+    rw [abs_mul, abs_mul]
+    have h_sign_abs : |(if s then (-1 : ℝ) else 1)| = 1 := by
+      cases s <;> simp
+    rw [h_sign_abs, one_mul]
+    have h_pow_pos : 0 < (2 : ℝ) ^ ((e.val : Int) - bias eb) :=
+      zpow_pos (by norm_num) _
+    have h_mant_pos : 0 < 1 + (m.val : ℝ) / (2 : ℝ) ^ mb := by positivity
+    rw [abs_of_pos h_pow_pos, abs_of_pos h_mant_pos]
+    have h_pow_mb_ge_one : (1 : ℝ) ≤ (2 : ℝ) ^ mb := by
+      have h_nat : (1 : Nat) ≤ 2 ^ mb := Nat.one_le_two_pow
+      exact_mod_cast h_nat
+    rw [show ((e.val : Int) - bias eb - (mb : Int)) =
+        ((e.val : Int) - bias eb) + (-(mb : Int)) by ring]
+    rw [zpow_add₀ (by norm_num : (2 : ℝ) ≠ 0), zpow_neg, zpow_natCast]
+    have h_nonneg_pow : 0 ≤ (2 : ℝ) ^ ((e.val : Int) - bias eb) :=
+      le_of_lt h_pow_pos
+    have h_le_factor : ((2 : ℝ) ^ mb)⁻¹ ≤ 1 + (m.val : ℝ) / (2 : ℝ) ^ mb := by
+      have h_inv_le_one : ((2 : ℝ) ^ mb)⁻¹ ≤ 1 :=
+        inv_le_one_of_one_le₀ h_pow_mb_ge_one
+      have h_nonneg_div : 0 ≤ (m.val : ℝ) / (2 : ℝ) ^ mb := by positivity
+      linarith
+    exact mul_le_mul_of_nonneg_left h_le_factor h_nonneg_pow
+
+/-- For a normal finite encoding, `ulp x ≤ ε |x|`, where
+    `ε = 2^{-mb}` is `machineEpsilon`. -/
+theorem ulp_le_machineEpsilon_mul_abs_of_normal {x : IEEEFloat eb mb}
+    (h_norm : x.isNormal = true) :
+    x.ulp ≤ machineEpsilon eb mb * |x.toRealOrZero| := by
+  cases x with
+  | nan => simp [isNormal] at h_norm
+  | inf _ => simp [isNormal] at h_norm
+  | finite s e m =>
+    simp [isNormal] at h_norm
+    simp only [ulp, toRealOrZero, finiteValue, machineEpsilon]
+    rw [if_neg h_norm]
+    simp only [h_norm, ↓reduceIte]
+    rw [abs_mul, abs_mul]
+    have h_sign_abs : |(if s then (-1 : ℝ) else 1)| = 1 := by
+      cases s <;> simp
+    rw [h_sign_abs, one_mul]
+    have h_pow_pos : 0 < (2 : ℝ) ^ ((e.val : Int) - bias eb) :=
+      zpow_pos (by norm_num) _
+    have h_mant_pos : 0 < 1 + (m.val : ℝ) / (2 : ℝ) ^ mb := by positivity
+    rw [abs_of_pos h_pow_pos, abs_of_pos h_mant_pos]
+    rw [show ((e.val : Int) - bias eb - (mb : Int)) =
+        ((e.val : Int) - bias eb) + (-(mb : Int)) by ring]
+    rw [zpow_add₀ (by norm_num : (2 : ℝ) ≠ 0)]
+    have h_nonneg_left : 0 ≤ (2 : ℝ) ^ (-(mb : Int)) :=
+      le_of_lt (zpow_pos (by norm_num) _)
+    have h_nonneg_pow : 0 ≤ (2 : ℝ) ^ ((e.val : Int) - bias eb) :=
+      le_of_lt h_pow_pos
+    have h_factor : (1 : ℝ) ≤ 1 + (m.val : ℝ) / (2 : ℝ) ^ mb := by
+      have h_div_nonneg : 0 ≤ (m.val : ℝ) / (2 : ℝ) ^ mb := by positivity
+      linarith
+    nlinarith [mul_le_mul_of_nonneg_left h_factor h_nonneg_pow, h_nonneg_left]
+
+/-- If `r` rounds to `z` and the absolute error is at most half
+    `|z|`, then `|z| / 2 ≤ |r|`. -/
+theorem abs_result_half_le_abs_exact
+    (r z : ℝ)
+    (h_err : |r - z| ≤ |z| / 2) :
+    |z| / 2 ≤ |r| := by
+  have h_triangle : |z| ≤ |r - z| + |r| := by
+    calc
+      |z| = |-(r - z) + r| := by ring_nf
+      _ ≤ |-(r - z)| + |r| := abs_add_le (-(r - z)) r
+      _ = |r - z| + |r| := by rw [abs_neg]
+  linarith
+
+/-- Normal RNE results satisfy the standard `1 ulp` relative-error
+    bound with `machineEpsilon eb mb = 2^{-mb}`. -/
+theorem rne_normal_relative_error
+    (heb : 2 ≤ eb) (hmb : 1 ≤ mb)
+    (r : ℝ) (z : IEEEFloat eb mb)
+    (h_rne : IsRoundedToNearestEven r z)
+    (h_norm : z.isNormal = true) :
+    |r - z.toRealOrZero| ≤ machineEpsilon eb mb * |r| := by
+  have hover := in_range_of_rne_normal (eb := eb) (mb := mb) r z h_rne h_norm
+  have h_abs : |r - z.toRealOrZero| ≤ z.ulp / 2 :=
+    half_ulp_bound heb hmb r z (IsRoundedToNearest.of_rne h_rne) hover
+  have h_ulp_rel : z.ulp ≤ machineEpsilon eb mb * |z.toRealOrZero| :=
+    ulp_le_machineEpsilon_mul_abs_of_normal (eb := eb) (mb := mb) h_norm
+  have h_ulp_abs : z.ulp ≤ |z.toRealOrZero| :=
+    ulp_le_abs_of_normal (eb := eb) (mb := mb) h_norm
+  have h_abs_z : |r - z.toRealOrZero| ≤ |z.toRealOrZero| / 2 := by
+    nlinarith
+  have h_z_half : |z.toRealOrZero| / 2 ≤ |r| :=
+    abs_result_half_le_abs_exact r z.toRealOrZero h_abs_z
+  have h_eps_nonneg : 0 ≤ machineEpsilon eb mb := by
+    unfold machineEpsilon
+    positivity
+  have h_ulp_half :
+      z.ulp / 2 ≤ machineEpsilon eb mb * (|z.toRealOrZero| / 2) := by
+    nlinarith
+  have h_rel_target : z.ulp / 2 ≤ machineEpsilon eb mb * |r| := by
+    exact le_trans h_ulp_half (mul_le_mul_of_nonneg_left h_z_half h_eps_nonneg)
+  exact le_trans h_abs h_rel_target
+
+/-! ## Relative bounds for backend operations with normal results -/
+
+/-- Correctly-rounded addition satisfies the normal-result relative
+    error bound. -/
+theorem add_relative_error_normal
+    (heb : 2 ≤ eb) (hmb : 1 ≤ mb)
+    (x y : IEEEFloat eb mb)
+    (h_norm : (add (le_trans (by decide) heb) hmb x y).isNormal = true) :
+    |(add (le_trans (by decide) heb) hmb x y).toRealOrZero -
+        (x.toRealOrZero + y.toRealOrZero)|
+      ≤ machineEpsilon eb mb * |x.toRealOrZero + y.toRealOrZero| := by
+  cases x with
+  | nan => simp [add, isNormal] at h_norm
+  | inf sx =>
+    cases y with
+    | nan => simp [add, isNormal] at h_norm
+    | inf sy =>
+      by_cases hsign : sx = sy <;> simp [add, hsign, isNormal] at h_norm
+    | finite _ _ _ => simp [add, isNormal] at h_norm
+  | finite sx ex mx =>
+    cases y with
+    | nan => simp [add, isNormal] at h_norm
+    | inf _ => simp [add, isNormal] at h_norm
+    | finite sy ey my =>
+      simp only [add, toRealOrZero]
+      rw [abs_sub_comm]
+      exact rne_normal_relative_error heb hmb _ _
+        (roundToNearestEven_isRNE (le_trans (by decide) heb) hmb _) h_norm
+
+/-- Correctly-rounded subtraction satisfies the normal-result relative
+    error bound. -/
+theorem sub_relative_error_normal
+    (heb : 2 ≤ eb) (hmb : 1 ≤ mb)
+    (x y : IEEEFloat eb mb)
+    (h_norm : (sub (le_trans (by decide) heb) hmb x y).isNormal = true) :
+    |(sub (le_trans (by decide) heb) hmb x y).toRealOrZero -
+        (x.toRealOrZero - y.toRealOrZero)|
+      ≤ machineEpsilon eb mb * |x.toRealOrZero - y.toRealOrZero| := by
+  cases x with
+  | nan => simp [sub, isNormal] at h_norm
+  | inf sx =>
+    cases y with
+    | nan => simp [sub, isNormal] at h_norm
+    | inf sy =>
+      by_cases hsign : sx = sy <;> simp [sub, hsign, isNormal] at h_norm
+    | finite _ _ _ => simp [sub, isNormal] at h_norm
+  | finite sx ex mx =>
+    cases y with
+    | nan => simp [sub, isNormal] at h_norm
+    | inf _ => simp [sub, isNormal] at h_norm
+    | finite sy ey my =>
+      simp only [sub, toRealOrZero]
+      rw [abs_sub_comm]
+      exact rne_normal_relative_error heb hmb _ _
+        (roundToNearestEven_isRNE (le_trans (by decide) heb) hmb _) h_norm
+
+/-- Correctly-rounded multiplication satisfies the normal-result
+    relative error bound. -/
+theorem mul_relative_error_normal
+    (heb : 2 ≤ eb) (hmb : 1 ≤ mb)
+    (x y : IEEEFloat eb mb)
+    (h_norm : (mul (le_trans (by decide) heb) hmb x y).isNormal = true) :
+    |(mul (le_trans (by decide) heb) hmb x y).toRealOrZero -
+        (x.toRealOrZero * y.toRealOrZero)|
+      ≤ machineEpsilon eb mb * |x.toRealOrZero * y.toRealOrZero| := by
+  cases x with
+  | nan => simp [mul, isNormal] at h_norm
+  | inf sx =>
+    cases y with
+    | nan => simp [mul, isNormal] at h_norm
+    | inf _ => simp [mul, isNormal] at h_norm
+    | finite sy ey my =>
+      by_cases hyz : (IEEEFloat.finite sy ey my : IEEEFloat eb mb).isZero
+      · simp [mul, hyz, isNormal] at h_norm
+      · simp [mul, hyz, isNormal] at h_norm
+  | finite sx ex mx =>
+    cases y with
+    | nan => simp [mul, isNormal] at h_norm
+    | inf _ =>
+      by_cases hxz : (IEEEFloat.finite sx ex mx : IEEEFloat eb mb).isZero
+      · simp [mul, hxz, isNormal] at h_norm
+      · simp [mul, hxz, isNormal] at h_norm
+    | finite sy ey my =>
+      simp only [mul, toRealOrZero]
+      rw [abs_sub_comm]
+      exact rne_normal_relative_error heb hmb _ _
+        (roundToNearestEven_isRNE (le_trans (by decide) heb) hmb _) h_norm
+
+/-- Correctly-rounded division satisfies the normal-result relative
+    error bound. -/
+theorem div_relative_error_normal
+    (heb : 2 ≤ eb) (hmb : 1 ≤ mb)
+    (x y : IEEEFloat eb mb)
+    (h_norm : (div (le_trans (by decide) heb) hmb x y).isNormal = true) :
+    |(div (le_trans (by decide) heb) hmb x y).toRealOrZero -
+        (x.toRealOrZero / y.toRealOrZero)|
+      ≤ machineEpsilon eb mb * |x.toRealOrZero / y.toRealOrZero| := by
+  cases x with
+  | nan => simp [div, isNormal] at h_norm
+  | inf _ =>
+    cases y with
+    | nan => simp [div, isNormal] at h_norm
+    | inf _ => simp [div, isNormal] at h_norm
+    | finite _ _ _ => simp [div, isNormal] at h_norm
+  | finite sx ex mx =>
+    cases y with
+    | nan => simp [div, isNormal] at h_norm
+    | inf _ => simp [div, isNormal] at h_norm
+    | finite sy ey my =>
+      by_cases hyz : (IEEEFloat.finite sy ey my : IEEEFloat eb mb).isZero
+      · by_cases hxz : (IEEEFloat.finite sx ex mx : IEEEFloat eb mb).isZero
+        · simp [div, hyz, hxz, isNormal] at h_norm
+        · simp [div, hyz, hxz, isNormal] at h_norm
+      · have h_norm_rne :
+            (roundToNearestEven (le_trans (by decide) heb) hmb
+              (finiteValue sx ex mx / finiteValue sy ey my)).isNormal = true := by
+          simpa [div, hyz] using h_norm
+        simp only [div, toRealOrZero]
+        rw [if_neg hyz]
+        rw [abs_sub_comm]
+        exact rne_normal_relative_error heb hmb _ _
+          (roundToNearestEven_isRNE (le_trans (by decide) heb) hmb _) h_norm_rne
+
 /-! ## Half-ULP bounds for the correctly-rounded operations
 
 Each `*_within_half_ulp` theorem says: for finite operands whose

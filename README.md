@@ -1,11 +1,12 @@
 # LeanFloats
 
-Lean 4 / Mathlib formalizations of two binary floating-point families:
+Lean 4 / Mathlib formalizations of three low-precision floating-point families:
 
 - **IEEEFloat** — strict IEEE 754-2019 binary interchange formats (`binary16`, `binary32`, `binary64`, plus `bfloat16` for ML), parameterized over exponent width `eb` and trailing-mantissa width `mb`.
 - **MX** — the Open Compute Project Microscaling specification v1.0 (block-scaled low-precision floats; element format `E2M1` (FP4), scale format `E8M0`, block size `K = 32`).
+- **NV** — NVIDIA-style NVFP4 micro-blocks (element format `E2M1`, scale format `E4M3` FP8, block size `K = 16`, plus a per-tensor FP32 scale represented as a real-valued decode parameter).
 
-Both libraries share the structural concept (sign + biased exponent + trailing mantissa) but differ in implementation: `IEEEFloat` reserves the all-ones exponent for NaN/∞, while MX has no NaN or ∞ at the element level (block-level NaN is carried by the scale).
+The libraries share the structural concept (sign + biased exponent + trailing mantissa) but differ in implementation: `IEEEFloat` reserves the all-ones exponent for NaN/∞, MX has no NaN or ∞ at the element level (block-level NaN is carried by the scale), and NVFP4 uses E4M3 FP8 scales with no infinities and a NaN scale tag.
 
 ## Status
 
@@ -17,14 +18,17 @@ This is currently a single-author research codebase. The IEEEFloat layer ships:
 - `finiteValue : F → ℝ` and `toReal : F → Option ℝ` bridging to Mathlib's `ℝ`.
 - Round-to-nearest-even spec (`IsRoundedToNearestEven`) and a classical `roundToNearest` whose existence is proved via `Finset.exists_min_image`.
 - Correctly-rounded `add` / `sub` / `mul` / `div` contracts (`IsCorrectlyRounded*`), and explicit (still `noncomputable`) implementations satisfying them.
-- Half-ULP error bounds for in-range RN results, plus per-op wrappers and `unitRoundoff` / `machineEpsilon`.
+- Half-ULP error bounds for in-range RN results, theorem-backed normal-result relative-error bounds, plus per-op wrappers and `unitRoundoff` / `machineEpsilon`.
 - Bit-pattern interchange (`toBits` / `fromBits`) with round-trip and injectivity proofs, verified against the four standard formats' canonical hex encodings.
 - ULP / `nextFinite` / `prevFinite`, monotonicity, parity alternation, encoding-adjacency (no real value strictly between adjacent encodings), and a positive-finite trichotomy.
 - Cross-format conversion (§5.4.2), integer ↔ float conversions, all five §4.3 rounding-mode specs, comparison predicates (§5.6), `minimum` / `maximum` / `minimumNumber` / `maximumNumber` (§5.3.1), `abs` / `copySign` / `fpclass`.
+- `IEEEFloat.FloatSpec` instances for `F32` / `F16` / `BF16` expose the rigorous normal-result arithmetic bounds; unconditional relative-error bounds are intentionally omitted because they are false at subnormal underflow.
 
 The MX layer ships `E2M1` / `E8M0` / `MXBlock`, decode/encode/round, ops + backend, comparison, kernel-style operations (dot, reduction, GEMM, RMSNorm, softmax, transformer block), and tree-dependence reasoning.
 
-For per-module summaries see the doc-comments in [`IEEEFloat.lean`](IEEEFloat.lean) and [`MX.lean`](MX.lean).
+The NV layer ships `E4M3` / `NVBlock` / decode semantics for NVFP4 micro-blocks; quantizer selection and kernel-level theorems are intentionally left for follow-up.
+
+For per-module summaries see the doc-comments in [`IEEEFloat.lean`](IEEEFloat.lean), [`MX.lean`](MX.lean), and [`NV.lean`](NV.lean).
 
 ## Downstream
 
