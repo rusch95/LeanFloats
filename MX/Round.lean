@@ -242,7 +242,8 @@ theorem sr_exists (r : ℝ) : ∃ z : E2M1, IsValidStochasticRound r z := by
           have hm : ym_val = 0 ∨ ym_val = 1 := by omega
           rcases ys with _ | _ <;> fin_cases ye <;>
             rcases hm with rfl | rfl <;>
-              (dsimp [toReal, bias]; norm_num)
+              (dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+                bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num)
         linarith
 
 /-- Constructive stochastic round.  Picks the lower-adjacent
@@ -427,31 +428,42 @@ private theorem odd_pair_midpoint_has_close_even
   rcases as with _ | _ <;> rcases bs with _ | _ <;>
     fin_cases ae <;> fin_cases be <;>
       (first
-        | (exfalso; dsimp [toReal, bias] at h_lt; linarith)
+        | (exfalso
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias] at h_lt
+           linarith)
         | (refine ⟨⟨false, 0, 0⟩, rfl, ?_⟩
            show |((⟨false, 0, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨false, 1, 0⟩, rfl, ?_⟩
            show |((⟨false, 1, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨false, 2, 0⟩, rfl, ?_⟩
            show |((⟨false, 2, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨false, 3, 0⟩, rfl, ?_⟩
            show |((⟨false, 3, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨true, 0, 0⟩, rfl, ?_⟩
            show |((⟨true, 0, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨true, 1, 0⟩, rfl, ?_⟩
            show |((⟨true, 1, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨true, 2, 0⟩, rfl, ?_⟩
            show |((⟨true, 2, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num; done)
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num; done)
         | (refine ⟨⟨true, 3, 0⟩, rfl, ?_⟩
            show |((⟨true, 3, 0⟩ : E2M1)).toReal - _| ≤ _
-           dsimp [toReal, bias]; norm_num))
+           dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+             bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]; norm_num))
 
 /-- Equidistance + ordering ⇒ `r` is the midpoint and the distance
     equals half the gap. -/
@@ -659,13 +671,17 @@ private lemma exists_E2M1_within_one (r : ℝ) (h_in : |r| < overflowBoundary) :
         rw [toReal_pos_zero, abs_le]; refine ⟨?_, ?_⟩ <;> linarith⟩
     rcases le_or_gt (-3) r with h3 | h3
     · refine ⟨⟨true, 2, 0⟩, ?_⟩
-      have htwo : ((⟨true, 2, 0⟩ : E2M1)).toReal = -2 := by
-        unfold toReal bias; norm_num
+      have htwo : toReal (⟨true, 2, 0⟩ : E2M1) = -2 := by
+        dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+          bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]
+        norm_num
       rw [htwo, abs_le]; refine ⟨?_, ?_⟩ <;> linarith
     rcases le_or_gt (-5) r with h5 | h5
     · refine ⟨⟨true, 3, 0⟩, ?_⟩
-      have hfour : ((⟨true, 3, 0⟩ : E2M1)).toReal = -4 := by
-        unfold toReal bias; norm_num
+      have hfour : toReal (⟨true, 3, 0⟩ : E2M1) = -4 := by
+        dsimp [toReal, MX.E2M1.toReal, LowFloat.FP4.E2M1.toReal,
+          bias, MX.E2M1.bias, LowFloat.FP4.E2M1.bias]
+        norm_num
       rw [hfour, abs_le]; refine ⟨?_, ?_⟩ <;> linarith
     · exact ⟨⟨true, 3, 1⟩, by
         rw [toReal_neg_six, abs_le]; refine ⟨?_, ?_⟩ <;> linarith⟩

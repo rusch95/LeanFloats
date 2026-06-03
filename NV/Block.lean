@@ -1,5 +1,5 @@
 import Mathlib.Data.Vector.Defs
-import MX.E2M1
+import LowFloat.FP4.E2M1
 import NV.E4M3
 
 /-! # NVBlock — NVFP4 micro-blocks
@@ -19,7 +19,7 @@ namespace NV
 /-- A block of `K` NVFP4 elements sharing one E4M3 scale. -/
 structure NVBlock (K : Nat) where
   scale : E4M3
-  elements : List.Vector MX.E2M1 K
+  elements : List.Vector LowFloat.FP4.E2M1 K
 
 namespace NVBlock
 

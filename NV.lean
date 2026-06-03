@@ -6,7 +6,7 @@ import NV.Decode
 
 This library formalizes the core decoding semantics of NVFP4:
 
-  * E2M1 FP4 elements, reused from `MX.E2M1`.
+  * E2M1 FP4 elements, reused from `LowFloat.FP4.E2M1`.
   * One shared FP8 E4M3 scale per micro-block.
   * Standard micro-block size `K = 16`.
   * A second-level per-tensor FP32 scale, represented as a real

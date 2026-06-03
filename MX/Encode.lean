@@ -101,7 +101,7 @@ theorem roundRNE_zero_toReal : (roundRNE (0 : ℝ)).toReal = 0 := by
     rw [abs_zero]; unfold E2M1.overflowBoundary; norm_num
   have ⟨hmin, _⟩ := h.2 hin
   -- The roundRNE 0 must be at distance 0 (since +0 is at distance 0).
-  have hpz : |((⟨false, 0, 0⟩ : E2M1)).toReal - 0| = 0 := by
+  have hpz : |E2M1.toReal (⟨false, 0, 0⟩ : E2M1) - 0| = 0 := by
     rw [E2M1.toReal_pos_zero]; simp
   have h_le : |(roundRNE 0).toReal - 0| ≤ 0 := by
     have := hmin ⟨false, 0, 0⟩

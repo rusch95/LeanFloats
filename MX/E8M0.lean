@@ -1,33 +1,20 @@
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import LowFloat.FP8.OCP.E8M0
 
-/-! # E8M0 — the 8-bit MX block scale
+/-! # Compatibility re-export for MX E8M0
 
-A pure exponent-only format: 8 bits encoding `2^k` for `k ∈ [-127, 127]`,
-plus one reserved NaN pattern.
-
-  *  Bias = 127.
-  *  Bit pattern `0x00` (raw exponent 0) → `2^(-127)`.
-  *  Bit patterns `0x01` … `0xFE` (raw 1 … 254) → `2^(raw - 127)`.
-  *  Bit pattern `0xFF` (raw 255) → NaN.
-
-There is no sign bit and no mantissa bit.  The format exists only to
-provide a per-block multiplicative scale factor in the MX format.
-
-When a block's scale is NaN, the entire block is interpreted as
-NaN-tagged — every element decode produces `none`.
+The canonical scalar type now lives at `LowFloat.FP8.OCP.E8M0`.
+This module preserves the historical `MX.E8M0` API, including
+concrete wrapper definitions that old MX proofs unfold directly.
 -/
 
 namespace MX
 
-/-- An E8M0 scale: an 8-bit raw value, with `0xFF` reserved for NaN. -/
-structure E8M0 where
-  raw : Fin 256
-  deriving DecidableEq, Fintype, Repr
+/-- Historical MX namespace alias for the shared OCP E8M0 scale. -/
+abbrev E8M0 : Type := LowFloat.FP8.OCP.E8M0
 
 namespace E8M0
 
-instance : Inhabited E8M0 := ⟨⟨127⟩⟩  -- 2^0 = 1
+instance : Inhabited E8M0 := ⟨⟨127⟩⟩
 
 /-- Bias for E8M0: 127. -/
 def bias : Int := 127
@@ -38,45 +25,38 @@ def nanRaw : Fin 256 := 255
 /-- A specific E8M0 NaN. -/
 def nan : E8M0 := ⟨nanRaw⟩
 
-/-- The "scale = 1" value: raw = 127. -/
+/-- The scale value `1`: raw = 127. -/
 def one : E8M0 := ⟨127⟩
-
-/-! ## Predicates -/
 
 def isNaN (x : E8M0) : Bool := x.raw = nanRaw
 
 @[simp] theorem isNaN_nan : isNaN nan = true := by
-  unfold isNaN nan; rfl
+  unfold isNaN nan
+  rfl
 
 @[simp] theorem isNaN_one : isNaN one = false := by
-  unfold isNaN one nanRaw; rfl
+  unfold isNaN one nanRaw
+  rfl
 
-/-! ## Real-valued decoding
-
-NaN decodes to `none`; everything else decodes to `2^(raw - 127)`. -/
-
-/-- Decode an E8M0 to its scale factor.  `none` for NaN, `some (2^k)`
-    otherwise. -/
+/-- Decode an E8M0 to its scale factor.  `none` for NaN. -/
 noncomputable def toReal (x : E8M0) : Option ℝ :=
   if x.raw = nanRaw then none
   else some ((2 : ℝ) ^ ((x.raw.val : Int) - bias))
 
-/-- The "raw scalar" form: `0` for NaN, `2^k` otherwise.  Use only
-    after dispatching the NaN case; prefer `toReal` for safety. -/
+/-- Decode with `0` as a sentinel for NaN. -/
 noncomputable def toRealOrZero (x : E8M0) : ℝ :=
   if x.raw = nanRaw then 0
   else (2 : ℝ) ^ ((x.raw.val : Int) - bias)
 
-/-- The scale value for `one` is `2^0 = 1`. -/
 theorem one_toReal : one.toReal = some 1 := by
   unfold toReal one bias nanRaw
   simp
 
 theorem nan_toReal : nan.toReal = none := by
-  unfold toReal nan nanRaw; simp
+  unfold toReal nan nanRaw
+  simp
 
-/-- Range of representable scales: `2^{-127}` (smallest) to `2^{127}`
-    (largest), plus NaN. -/
+/-- Range of representable non-NaN scales: `2^{-127}` to `2^{127}`. -/
 theorem toReal_range (x : E8M0) (hx : x.isNaN = false) :
     ∃ k : Int, (-127 ≤ k ∧ k ≤ 127) ∧ x.toReal = some ((2 : ℝ) ^ k) := by
   have h_ne : x.raw ≠ nanRaw := by
@@ -88,7 +68,6 @@ theorem toReal_range (x : E8M0) (hx : x.isNaN = false) :
       have : (0 : Int) ≤ x.raw.val := Int.natCast_nonneg _
       linarith
     · unfold bias
-      have h_lt : x.raw.val < 256 := x.raw.isLt
       have h_ne_val : x.raw.val ≠ 255 := fun h_eq => h_ne (Fin.ext h_eq)
       have : (x.raw.val : Int) ≤ 254 := by
         have : x.raw.val ≤ 254 := by omega

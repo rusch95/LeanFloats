@@ -33,6 +33,8 @@ The LowFloat layer ships scalar decode/bit-layout coverage for:
 - TF32 as the scalar `IEEEFloat 8 10` format.
 - Generic E8M0-scaled block shells for MXFP4, MXFP6, and MXFP8 decode semantics; kernel behavior is intentionally left to downstream repos.
 
+`LowFloat` owns the shared scalar definitions; `MX.E2M1`, `MX.E8M0`, and `NV.E4M3` are compatibility re-exports for older imports.
+
 The MX layer ships `E2M1` / `E8M0` / `MXBlock`, decode/encode/round, ops + backend, comparison, kernel-style operations (dot, reduction, GEMM, RMSNorm, softmax, transformer block), and tree-dependence reasoning.
 
 The NV layer ships `E4M3` / `NVBlock` / decode semantics for NVFP4 micro-blocks; quantizer selection and kernel-level theorems are intentionally left for follow-up.

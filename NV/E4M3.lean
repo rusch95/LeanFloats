@@ -1,44 +1,23 @@
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.BitVec
-import Mathlib.Data.Fintype.Sigma
-import Mathlib.Data.Fintype.Sum
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Tactic.DeriveFintype
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
+import LowFloat.FP8.OCP.E4M3
 
-/-! # E4M3 — FP8 scale format for NVFP4
+/-! # Compatibility re-export for NV E4M3
 
-NVFP4 uses E2M1 4-bit elements together with a shared FP8 E4M3
-scale for each 16-value micro-block.  This module models the E4M3
-scale encoding used by NVIDIA-style FP8:
-
-  * 1 sign bit, 4 exponent bits, 3 mantissa bits.
-  * Bias = 7.
-  * No infinities.
-  * The all-ones exponent with all-ones mantissa is NaN.
-  * Other all-ones exponent payloads are finite, so the maximum
-    positive finite value is `(1 + 6/8) * 2^8 = 448`.
-
-Although NVFP4 scales are normally chosen nonnegative by quantizers,
-the stored E4M3 carrier is signed; callers can impose positivity
-where their quantization policy requires it.
+The canonical OCP FP8 E4M3 scalar type now lives at
+`LowFloat.FP8.OCP.E4M3`.  This module preserves the historical
+`NV.E4M3` API used by the NVFP4 block layer, including concrete
+wrapper definitions that existing proofs unfold directly.
 -/
 
 namespace NV
 
-/-- An FP8 E4M3 value: sign + 4-bit exponent + 3-bit mantissa. -/
-structure E4M3 where
-  s : Bool
-  e : Fin 16
-  m : Fin 8
-  deriving DecidableEq, Fintype, Repr
+/-- Historical NV namespace alias for the shared OCP FP8 E4M3 scalar. -/
+abbrev E4M3 : Type := LowFloat.FP8.OCP.E4M3
 
 namespace E4M3
 
 instance : Inhabited E4M3 := ⟨⟨false, 7, 0⟩⟩
 
-/-- Bias for E4M3: `2^(4-1)-1 = 7`. -/
+/-- Bias for E4M3. -/
 def bias : Int := 7
 
 /-- The single mantissa payload reserved for NaN when `e = 15`. -/
@@ -50,14 +29,11 @@ def zero : E4M3 := ⟨false, 0, 0⟩
 /-- The scale value `1`. -/
 def one : E4M3 := ⟨false, 7, 0⟩
 
-/-- A quiet NaN representative.  The sign bit is intentionally
-    fixed because scale-level NaN is just a tag at this layer. -/
+/-- A quiet NaN representative. -/
 def nan : E4M3 := ⟨false, 15, nanMantissa⟩
 
 /-- Largest positive finite E4M3 value: `448`. -/
 def maxFinite : E4M3 := ⟨false, 15, 6⟩
-
-/-! ## Predicates -/
 
 /-- E4M3 reserves only exponent `15`, mantissa `7` as NaN. -/
 def isNaN (x : E4M3) : Bool := x.e.val = 15 ∧ x.m.val = 7
@@ -68,8 +44,7 @@ def isZero (x : E4M3) : Bool := x.e.val = 0 ∧ x.m.val = 0
 /-- `e = 0, m ≠ 0`: subnormal. -/
 def isSubnormal (x : E4M3) : Bool := x.e.val = 0 ∧ x.m.val ≠ 0
 
-/-- Finite, nonzero exponent.  This includes finite `e = 15`,
-    `m ≠ 7` encodings because this E4M3 variant has no infinities. -/
+/-- Finite, nonzero exponent.  This includes finite `e = 15`, `m ≠ 7`. -/
 def isNormal (x : E4M3) : Bool := x.isNaN = false ∧ x.e.val ≠ 0
 
 @[simp] theorem isNaN_nan : nan.isNaN = true := by
@@ -83,8 +58,6 @@ def isNormal (x : E4M3) : Bool := x.isNaN = false ∧ x.e.val ≠ 0
 @[simp] theorem isNaN_zero : zero.isNaN = false := by
   unfold isNaN zero
   decide
-
-/-! ## Real-valued decoding -/
 
 /-- Decode every bit pattern as if it were finite.  `toReal` masks
     this with `none` for NaN. -/
@@ -100,8 +73,7 @@ noncomputable def finiteValue (x : E4M3) : ℝ :=
 noncomputable def toReal (x : E4M3) : Option ℝ :=
   if x.isNaN then none else some x.finiteValue
 
-/-- Real value with `0` as a sentinel for NaN.  Prefer `toReal`
-    unless the NaN case has already been discharged. -/
+/-- Real value with `0` as a sentinel for NaN. -/
 noncomputable def toRealOrZero (x : E4M3) : ℝ :=
   if x.isNaN then 0 else x.finiteValue
 
@@ -120,8 +92,6 @@ theorem nan_toReal : nan.toReal = none := by
 theorem maxFinite_toReal : maxFinite.toReal = some 448 := by
   unfold toReal maxFinite isNaN finiteValue bias
   norm_num
-
-/-! ## Bit-pattern packing -/
 
 /-- Pack to 8 bits.  Bit layout: `s e₃ e₂ e₁ e₀ m₂ m₁ m₀`. -/
 def toBits (x : E4M3) : BitVec 8 :=
